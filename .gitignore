@@ -1,0 +1,5 @@
+# IDE settings 
+.vscode/
+
+# Build artifacts
+build/
