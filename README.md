@@ -8,9 +8,9 @@ This project was mainly developed to learn C and CMake.
 
 | Platform        | Supported         |
 |:---------------:|:-----------------:|
-| Windows         | Y                 |
-| MacOS           | N/A               |
-| Linux           | N/A               |
+| Windows         | ✅                |
+| MacOS           | Not Tested        |
+| Linux           | Not Tested        |
 
 ## Pros and Cons
 
@@ -46,6 +46,12 @@ cmake -S . -B build -DCMAKE_INSTALL_PREFIX="C:\CMakePackages\confetti" -DCMAKE_B
 cmake --build ./build && cmake --install ./build
 ```
 
+If using a multi-configuration generator like visual studio, please ensure specify Release or Debug with `--config`
+```cmd
+cmake --build ./build --config Release && cmake --install ./build --config Release
+```
+
+
 7. In the downstream project run the following command to add confetti to the prefix path so cmake can find it and set the build type to release. 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="other_libs;path_here\confetti" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
@@ -53,7 +59,7 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH="other_libs;path_here\confetti" -DCMAKE_
 
 8. Build the downstream project.
 ```cmd
-cmake --build .\build
+cmake --build .\build --config Release
 ```
 
 ## Installing confetti
