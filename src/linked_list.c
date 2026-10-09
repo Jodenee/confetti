@@ -344,6 +344,8 @@ static linked_list_result_t linked_list_node_get(linked_list_t* const linkedList
             
         currentIndex++;
     }
+
+    return LINKED_LIST_INDEX_OUT_OF_RANGE_ERROR;
 }
 
 
@@ -617,6 +619,8 @@ linked_list_result_t linked_list_get(linked_list_t* const linkedList, linked_lis
             
         currentIndex++;
     }
+
+    return LINKED_LIST_INDEX_OUT_OF_RANGE_ERROR;
 }
 
 
@@ -810,6 +814,8 @@ linked_list_result_t linked_list_remove(linked_list_t* const linkedList, const u
         currentIndex++;
         lastNode = current;
     }
+
+    return LINKED_LIST_INDEX_OUT_OF_RANGE_ERROR;
 }
 
 
@@ -919,6 +925,8 @@ linked_list_result_t linked_list_pop(linked_list_t* const linkedList, linked_lis
         currentIndex++;
         lastNode = current;
     }
+
+    return LINKED_LIST_INDEX_OUT_OF_RANGE_ERROR;
 }
 
 
