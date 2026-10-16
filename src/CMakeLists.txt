@@ -2,12 +2,14 @@
 set(CONFETTI_SOURCES
     "list.c"
     "linked_list.c"
+    "hashtable.c"
 )
 
 # Define header files.
 set(CONFETTI_HEADERS
     "include/list.h" 
     "include/linked_list.h"
+    "include/hashtable.h"
 )
 
 # include required packages.
