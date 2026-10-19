@@ -1,12 +1,12 @@
 # Define source files.
 set(CONFETTI_SOURCES
-    "list.c"
+    "vector.c"
     "linked_list.c"
 )
 
 # Define header files.
 set(CONFETTI_HEADERS
-    "include/list.h" 
+    "include/vector.h" 
     "include/linked_list.h"
 )
 
