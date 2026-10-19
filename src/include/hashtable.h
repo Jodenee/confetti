@@ -60,26 +60,26 @@ CONFETTI_EXPORT hashtable_result_t hashtable_create(hashtable_t** hashtableOut);
 
 CONFETTI_EXPORT hashtable_result_t hashtable_free(hashtable_t** hashtable);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_print(hashtable_t* const hashtable);
+CONFETTI_EXPORT hashtable_result_t hashtable_print(const hashtable_t* const hashtable);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_insert(hashtable_t** const void* key, const void* value, const uint64_t size);
+CONFETTI_EXPORT hashtable_result_t hashtable_insert(hashtable_t* const hashtable, void* key, const void* value, const uint64_t size);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_get(hashtable_t** const void* key, linked_list_element_t** elementOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_get(hashtable_t* const hashtable, void* key, linked_list_element_t** elementOut);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_update(hashtable_t** const void* key, const void* value, const uint64_t size);
+CONFETTI_EXPORT hashtable_result_t hashtable_update(hashtable_t* const hashtable, void* key, const void* value, const uint64_t size);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_remove(hashtable_t** hashtable, const void* key);
+CONFETTI_EXPORT hashtable_result_t hashtable_remove(hashtable_t* const hashtable, const void* key);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_pop(hashtable_t** hashtable, const void* key, linked_list_element_t** elementOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_pop(hashtable_t* const hashtable, const void* key, linked_list_element_t** elementOut);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_key_exists(hashtable_t** hashtable, const void* key);
+CONFETTI_EXPORT hashtable_result_t hashtable_key_exists(const hashtable_t* const hashtable, const void* key);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_clear(hashtable_t** hashtable);
+CONFETTI_EXPORT hashtable_result_t hashtable_clear(hashtable_t* const hashtable);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_copy(hashtable_t** hashtable, hashtable_t** const hashtableOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_copy(const hashtable_t* const hashtable, hashtable_t** const hashtableOut);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_merge(hashtable_t** hashtableOne, hashtable_t** hashtableTwo, hashtable_t** const hashtableOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_merge(const hashtable_t* const hashtableOne, const hashtable_t* const hashtableTwo, hashtable_t** const hashtableOut);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_keys(hashtable_t** hashtable, void** const keysOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_keys(const hashtable_t* const hashtable, void** const keysOut);
 
-CONFETTI_EXPORT hashtable_result_t hashtable_values(hashtable_t** hashtable, void** const valuesOut);
+CONFETTI_EXPORT hashtable_result_t hashtable_values(const hashtable_t* const hashtable, void** const valuesOut);
