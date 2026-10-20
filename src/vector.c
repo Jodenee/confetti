@@ -208,18 +208,25 @@ static vector_result_t vector_element_create(const void* const value, const uint
 
 static vector_result_t vector_element_set(vector_element_t* const element, const void* value, const uint64_t size) {
     if (size != element->size) {
+        void* valueCopy = NULL;
+
         if (element->value == NULL)
-            element->value = (void*)malloc(size);
+            valueCopy = (void*)malloc(size);
         else
-            element->value = (void*)realloc(element->value, size);
+            valueCopy = (void*)realloc(element->value, size);
 
-        element->size = size;
-
-        if (element->value == NULL)
+        if (valueCopy == NULL)
             return VECTOR_ALLOCATION_FAILURE;
+        
+        element->value = valueCopy;
+        element->size = size;
     }
 
-    memcpy(element->value, value, size);
+    if (value == NULL || size == 0)
+        element->value = NULL;
+    else
+        memcpy(element->value, value, size);
+
     return VECTOR_SUCCESS;
 }
 
@@ -236,8 +243,10 @@ static vector_result_t vector_element_clone(vector_element_t* const element, vec
     if (element->value != NULL) {
         elementClone->value = (void*)malloc(element->size);
 
-        if (elementClone->value == NULL)
+        if (elementClone->value == NULL) {
+            free(elementClone);
             return VECTOR_ALLOCATION_FAILURE;
+        }
 
         memcpy(elementClone->value, element->value, element->size);
     }
@@ -267,18 +276,27 @@ static vector_result_t vector_realloc_capacity(vector_t* const vector, const int
             vector->items[i] = NULL;
         }
 
+        vector_element_t** reallocatedItems = (vector_element_t**) realloc(vector->items, sizeof(vector_element_t*) * capacity);
+
+        if (reallocatedItems == NULL)
+            return VECTOR_ALLOCATION_FAILURE;
+
+        vector->capacity = capacity;
+        vector->items = reallocatedItems;
+
         if (vector->size > capacity)
             vector->size = capacity;
     }
+    else {
+        vector_element_t** reallocatedItems = (vector_element_t**) realloc(vector->items, sizeof(vector_element_t*) * capacity);
 
-    vector->capacity = capacity;
-    vector->items = (vector_element_t**) realloc(vector->items, sizeof(vector_element_t*) * capacity);
+        if (reallocatedItems == NULL)
+            return VECTOR_ALLOCATION_FAILURE;
 
-    if (vector->items == NULL)
-        return VECTOR_ALLOCATION_FAILURE;
+        vector->capacity = capacity;
+        vector->items = reallocatedItems;
 
-    if (capacity > oldCapacity) {
-        for (int64_t i = oldCapacity; i < capacity - 1; i++) {
+        for (int64_t i = oldCapacity; i < capacity; i++) {
             vector->items[i] = NULL;
         }
     }
@@ -485,15 +503,15 @@ vector_result_t vector_prepend(vector_t* vector, void* value, const uint64_t siz
         if (result != VECTOR_SUCCESS) 
             return result;
     }
-
-    for (int64_t i = vector->size - 1; i >= 0; i--)
-        vector->items[i + 1] = vector->items[i];
     
-    vector_element_t* element = (vector_element_t*) malloc(sizeof(vector_element_t));
+    vector_element_t* element = NULL;
     vector_result_t result = vector_element_create(value, size, &element);
 
     if (result != VECTOR_SUCCESS)
         return result;
+
+    for (int64_t i = vector->size - 1; i >= 0; i--)
+        vector->items[i + 1] = vector->items[i];
 
     vector->items[0] = element;
     vector->size++;
@@ -536,10 +554,16 @@ vector_result_t vector_insert(vector_t* vector, const int64_t index, void* const
         if (result != VECTOR_SUCCESS) return result;
     }
 
+    vector_element_t* element = NULL;
+    vector_result_t createResult = vector_element_create(value, size, &element);
+
+    if (createResult != VECTOR_SUCCESS)
+        return createResult;
+
     for (int i = vector->size - 1; i >= index; i--)
         vector->items[i + 1] = vector->items[i];
-
-    vector_result_t createResult = vector_element_create(value, size, &vector->items[index]);
+    
+    vector->items[index] = element;
     vector->size++;
 
     return VECTOR_SUCCESS;
@@ -596,7 +620,7 @@ vector_result_t vector_set(vector_t* vector, const int64_t index, void* const va
 vector_result_t vector_remove(vector_t* vector, const int64_t index) {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
-    else if (index >= vector->capacity || index < 0)
+    else if (index < 0 || index >= vector->size)
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
 
     vector_result_t freeResult = vector_element_free(&vector->items[index]);
@@ -615,7 +639,7 @@ vector_result_t vector_remove(vector_t* vector, const int64_t index) {
 vector_result_t vector_pop(vector_t* const vector, vector_element_t** elementOut, const int64_t index) {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
-    else if (index >= vector->capacity || index < 0)
+    else if (index < 0 || index >= vector->size)
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
 
     vector_result_t cloneResult = vector_element_clone(vector->items[index], elementOut);
@@ -663,9 +687,12 @@ vector_result_t vector_clone(vector_t* const vector, vector_t** vectorOut) {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
 
-    vector_t* const vectorClone = (vector_t*) malloc(sizeof(vector_t));
+    if (*vectorOut == NULL) 
+        return VECTOR_INVALID_PARAMS_ERROR;
 
-    if (vector == NULL)
+    vector_t* vectorClone = (vector_t*) malloc(sizeof(vector_t));
+
+    if (vectorClone == NULL)
         return VECTOR_ALLOCATION_FAILURE;
 
     vectorClone->size = vector->size;
@@ -673,11 +700,21 @@ vector_result_t vector_clone(vector_t* const vector, vector_t** vectorOut) {
     vectorClone->items = (vector_element_t**) calloc(vectorClone->capacity, sizeof(vector_element_t*));
 
     if (vectorClone->items == NULL)
+        free(vectorClone);
         return VECTOR_ALLOCATION_FAILURE;
 
     for (int64_t i = 0LL; i < vector->size; i++) {
         vector_element_t* elementClone;
         vector_result_t result = vector_element_clone(vector->items[i], &elementClone);
+
+        if (result != VECTOR_SUCCESS) {
+            for (int64_t i = 0LL; i < i; i++) {
+                vector_element_free(&vector->items[i]);
+            }
+
+            vector_free(&vectorClone);
+            return result;
+        }
 
         vectorClone->items[i] = elementClone;
     }
@@ -879,10 +916,10 @@ vector_result_t vector_element_free(vector_element_t** element) {
         return VECTOR_INVALID_PARAMS_ERROR;
 
     free((*element)->value);
-    free(*element);
-
     (*element)->value = NULL;
     (*element)->size = 0;
+
+    free(*element);
     *element = NULL;
 
     return VECTOR_SUCCESS;
