@@ -57,7 +57,7 @@ typedef enum vector_result vector_result_t;
  * 
  * @return An int32_t indicating the comparison result.
  */
-typedef int32_t (vector_custom_equality_function_t)(const void* const data1, const void* const data2, const uint64_t size);
+typedef int32_t (*vector_custom_equality_function_t)(const void* const data1, const void* const data2, const size_t size);
 
 /**
  * @brief Type definition for a custom sorting function for a vector.
@@ -70,7 +70,13 @@ typedef int32_t (vector_custom_equality_function_t)(const void* const data1, con
  * 
  * @return A vector_result_t indicating the outcome of the sorting operation.
  */
-typedef vector_result_t (vector_custom_sorting_function_t)(vector_t* const vector, const bool ascending);
+typedef vector_result_t (*vector_custom_sorting_function_t)(vector_t* const vector, const bool ascending);
+
+typedef vector_result_t (*vector_custom_print_function_t)(
+    const void *value,
+    size_t size,
+    FILE *stream
+);
 
 /**
  * @brief Represents an element in a vector.
@@ -78,7 +84,7 @@ typedef vector_result_t (vector_custom_sorting_function_t)(vector_t* const vecto
  * This structure stores an element's size and a pointer to its value.
  */
 typedef struct vector_element {
-    uint64_t size; /* Size of the value in bytes. */
+    size_t size; /* Size of the value in bytes. */
     void* value;   /* Pointer to the data stored in the vector element. */
 } vector_element_t;
 
@@ -91,9 +97,10 @@ typedef struct vector_element {
 typedef struct vector {
     int64_t size;                                      /* Current number of elements in the vector. */
     int64_t capacity;                                  /* Total allocated capacity for elements. */
-    vector_element_t** items;                            /* Array of pointers to vector elements. */
-    vector_custom_equality_function_t* equalityFunction; /* Optional custom equality function for comparing elements. */
-    vector_custom_sorting_function_t* sortingFunction;   /* Optional custom sorting function for ordering elements. */
+    vector_element_t** items;                          /* Array of pointers to vector elements. */
+    vector_custom_equality_function_t equality; /* custom equality function for comparing elements. */
+    vector_custom_sorting_function_t sort;      /* custom sorting function for ordering elements. */
+    vector_custom_print_function_t print;        /* custom printing function for displaying elements with vector_print. */
 } vector_t;
 
 /**
@@ -195,10 +202,11 @@ typedef enum vector_result {
  * - `VECTOR_ALLOCATION_FAILURE` if the system couldn't allocate enough memory for the operation.
  */
 CONFETTI_EXPORT vector_result_t vector_create(
-    vector_t** vectorOut,
     const int64_t capacity,
-    vector_custom_equality_function_t* const customEqualityFunction,
-    vector_custom_sorting_function_t* const customSortingFunction);
+    vector_custom_equality_function_t const customEquality,
+    vector_custom_sorting_function_t const customSort,
+    vector_custom_print_function_t const customPrint,
+    vector_t** vectorOut);
 
 /**
  * @brief frees the memory for a `vector_t` and its elements.
@@ -228,7 +236,7 @@ CONFETTI_EXPORT vector_result_t vector_free(vector_t** vectorOut);
  * 
  * - `VECTOR_NULL_ERROR` if the provided vector pointer is NULL.
  */
-CONFETTI_EXPORT vector_result_t vector_print(vector_t* const vector);
+CONFETTI_EXPORT vector_result_t vector_print(vector_t* const vector, FILE* stream);
 
 /**
  * @brief Resizes the vector to the new capacity.
@@ -246,7 +254,7 @@ CONFETTI_EXPORT vector_result_t vector_print(vector_t* const vector);
  * @note If the new capacity is the same as the current capacity, 
  *       it returns `VECTOR_SUCCESS` without making any changes.
  */
-CONFETTI_EXPORT vector_result_t vector_resize(vector_t* const vector, const int64_t size);
+CONFETTI_EXPORT vector_result_t vector_resize(vector_t* const vector, const int64_t capacity);
 
 /**
  * @brief Prepends a new element to the beginning of the vector.
@@ -262,7 +270,7 @@ CONFETTI_EXPORT vector_result_t vector_resize(vector_t* const vector, const int6
  * 
  * - `VECTOR_ALLOCATION_FAILURE` if the system couldn't allocate enough memory for the operation.
  */
-CONFETTI_EXPORT vector_result_t vector_prepend(vector_t* const vector, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_prepend(vector_t* const vector, void* const value, const size_t size);
 
 /**
  * @brief Adds a new element with the specified value to the
@@ -279,7 +287,7 @@ CONFETTI_EXPORT vector_result_t vector_prepend(vector_t* const vector, void* con
  * 
  * - `VECTOR_ALLOCATION_FAILURE` if the system couldn't allocate enough memory for the operation.
  */
-CONFETTI_EXPORT vector_result_t vector_append(vector_t* const vector, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_append(vector_t* const vector, void* const value, const size_t size);
 
 /**
  * @brief Inserts a new element at a specified index in the vector.
@@ -296,7 +304,7 @@ CONFETTI_EXPORT vector_result_t vector_append(vector_t* const vector, void* cons
  * 
  * - `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if the index is out of range.
  */
-CONFETTI_EXPORT vector_result_t vector_insert(vector_t* const vector, const int64_t index, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_insert(vector_t* const vector, const int64_t index, void* const value, const size_t size);
 
 /**
  * @brief Retrieves an element from the vector at the specified index.
@@ -319,7 +327,7 @@ CONFETTI_EXPORT vector_result_t vector_insert(vector_t* const vector, const int6
  * the one inside the vector, so freeing this element is your responsibility, it is 
  * recomended to use `vector_element_free` for this.
  */
-CONFETTI_EXPORT vector_result_t vector_get(vector_t* const vector, vector_element_t** elementOut, const int64_t index);
+CONFETTI_EXPORT vector_result_t vector_get(vector_t* vector, const int64_t index, vector_element_t** elementOut);
 
 /**
  * @brief Sets the value of an element in the vector at the specified index.
@@ -338,7 +346,7 @@ CONFETTI_EXPORT vector_result_t vector_get(vector_t* const vector, vector_elemen
  * 
  * - `VECTOR_INVALID_PARAMS_ERROR` if the value size is zero.
  */
-CONFETTI_EXPORT vector_result_t vector_set(vector_t* const vector, const int64_t index, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_set(vector_t* const vector, const int64_t index, void* const value, const size_t size);
 
 /**
  * @brief Removes an element from the vector at the specified index.
@@ -373,7 +381,7 @@ CONFETTI_EXPORT vector_result_t vector_remove(vector_t* const vector, const int6
  * the one inside the vector, so freeing this element is your responsibility, it is 
  * recomended to use `vector_element_free` for this.
  */
-CONFETTI_EXPORT vector_result_t vector_pop(vector_t* const vector, vector_element_t** elementOut, const int64_t index);
+CONFETTI_EXPORT vector_result_t vector_pop(vector_t* const vector, const int64_t index, vector_element_t** elementOut);
 
 /**
  * @brief Reverses the order of elements inside the vector in-place.
@@ -460,7 +468,7 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t* const vector1, vector_t* c
  * 
  * - `VECTOR_ELEMENT_NOT_FOUND_ERROR` if the value is not found.
  */
-CONFETTI_EXPORT vector_result_t vector_includes(vector_t* const vector, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_includes(vector_t* const vector, void* const value, const size_t size);
 
 /**
  * @brief Finds the first occurrence of a specific value in the vector.
@@ -489,10 +497,10 @@ CONFETTI_EXPORT vector_result_t vector_includes(vector_t* const vector, void* co
  */
 CONFETTI_EXPORT vector_result_t vector_find_first(
     vector_t* const vector, 
-    int64_t* const indexOut, 
     const int64_t startIndex,
     void* const value, 
-    const uint64_t size);
+    const size_t size,
+    int64_t* const indexOut);
 
 /**
  * @brief Finds the last occurrence of a specific value in the vector.
@@ -521,10 +529,10 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  */
 CONFETTI_EXPORT vector_result_t vector_find_last(
     vector_t* const vector, 
-    int64_t* const indexOut, 
     const int64_t startIndex, 
     void* const value, 
-    const uint64_t size);
+    const size_t size,
+    int64_t* const indexOut);
 
 /**
  * @brief Sorts the elements of the vector.
@@ -572,7 +580,7 @@ CONFETTI_EXPORT vector_result_t vector_sort(vector_t* const vector, const bool a
  * 
  * - `VECTOR_ALLOCATION_FAILURE` if the system couldn't allocate enough memory for the operation. 
  */
-CONFETTI_EXPORT vector_result_t vector_fill(vector_t* const vector, void* const value, const uint64_t size);
+CONFETTI_EXPORT vector_result_t vector_fill(vector_t* const vector, void* const value, const size_t size);
 
 /**
  * @brief Swaps two elements in the vector at the specified indices.
@@ -620,7 +628,7 @@ CONFETTI_EXPORT vector_result_t vector_element_free(vector_element_t** element);
  * 
  * - `VECTOR_NULL_ERROR` if the provided vector pointer is NULL.
  */
-CONFETTI_EXPORT vector_result_t vector_iterator_create(vector_iterator_t** iteratorOut, vector_t* const vector);
+CONFETTI_EXPORT vector_result_t vector_iterator_create(vector_t* const vector, vector_iterator_t** iteratorOut);
 
 /**
  * @brief Advances the iterator to the next element in the vector.
