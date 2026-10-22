@@ -185,6 +185,14 @@ static vector_result_t vector_element_create(const void *const value, const size
 
 static vector_result_t vector_element_set(vector_element_t *const element, const void *value, const size_t size)
 {
+    if (value == NULL)
+    {
+        if (element->value != NULL)
+            free(element->value);
+
+        element->value = NULL;
+    }
+
     if (size != element->size)
     {
         void *valueCopy = NULL;
@@ -201,15 +209,7 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
         element->size = size;
     }
 
-    if (value == NULL)
-    {
-        if (element->value != NULL)
-            free(element->value);
-
-        element->value = NULL;
-    }
-    else
-        memcpy(element->value, value, size);
+    memcpy(element->value, value, size);
 
     return VECTOR_SUCCESS;
 }
@@ -352,7 +352,7 @@ static vector_result_t default_print(
     else
         streamPrintResult = fprintf(stream, "%p", value);
 
-    if (streamPrintResult != 0)
+    if (streamPrintResult > 0)
         return VECTOR_INVALID_PARAMS_ERROR;
 
     return VECTOR_SUCCESS;
@@ -438,7 +438,10 @@ vector_result_t vector_print(vector_t *vector, FILE *stream)
     {
         vector_element_t *element = vector->items[i];
 
-        vector->print(element->value, element->size, outputStream);
+        vector_result_t printResult = vector->print(element->value, element->size, outputStream);
+
+        if (printResult != VECTOR_SUCCESS)
+            return printResult;
 
         if (i < vector->size - 1)
             fprintf(outputStream, ", ");
@@ -742,7 +745,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     int64_t joinedCapacity = vector1->capacity + vector2->capacity;
 
-    if (joinedCapacity <= SIZE_MAX / sizeof(vector_element_t)) {
+    if (joinedCapacity >= SIZE_MAX / sizeof(vector_element_t)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
 
@@ -935,16 +938,11 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
         temp[i] = element;
     }
 
-    vector_element_t** tail = vector->items[vector->size - 1];
-
     for (int64_t i = 0; i < elementsToCreate; i++) {
-        vector_element_t** slot = tail++;
-
-        *slot = temp[i];
+        vector->items[vector->size + i] = temp[i];
     }
 
     vector->size = vector->capacity;
-
     free(temp);
     return VECTOR_SUCCESS;
 }
