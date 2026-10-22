@@ -315,8 +315,17 @@ static int default_sort_compare(void *ctx, const void *a, const void *b)
         return context->equality(elementTwo->value, elementOne->value, elementOne->size);
 }
 
-static vector_result_t default_sort(vector_t *const vector, const bool ascending)
+static vector_result_t default_sort(vector_t* const vector, const bool ascending)
 {
+    size_t expectedElementValueSize = vector->items[0]->size;
+
+    for (int64_t i = 0; i < vector->size; i++) {
+        vector_element_t* element = vector->items[i];
+
+        if (element->size != expectedElementValueSize)
+            return VECTOR_INVALID_PARAMS_ERROR; 
+    }
+
     vector_sort_context_t context = {
         .ascending = ascending,
         .equality = vector->equality};
@@ -602,10 +611,10 @@ vector_result_t vector_remove(vector_t *vector, const int64_t index)
     if (freeResult != VECTOR_SUCCESS)
         return freeResult;
 
-    for (int64_t i = index; i < vector->size; i++)
+    for (int64_t i = index; i < vector->size - 1; i++)
         vector->items[i] = vector->items[i + 1];
 
-    vector_element_free(&vector->items[vector->size - 1]);
+    vector->items[vector->size - 1] = NULL;
     vector->size--;
     return VECTOR_SUCCESS;
 }
@@ -632,7 +641,7 @@ vector_result_t vector_pop(vector_t *const vector, const int64_t index, vector_e
     for (int64_t i = index; i < vector->size - 1; i++)
         vector->items[i] = vector->items[i + 1];
 
-    vector_element_free(&vector->items[vector->size - 1]);
+    vector->items[vector->size - 1] = NULL;
     vector->size--;
     return VECTOR_SUCCESS;
 }
@@ -915,6 +924,10 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
         vector_result_t result = vector_element_create(value, size, &element);
 
         if (result != VECTOR_SUCCESS) {
+            for (int64_t j = 0; j < i; j++){
+                vector_element_free(&temp[i]);
+            }
+
             free(temp);
             return result;
         }
@@ -922,10 +935,10 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
         temp[i] = element;
     }
 
-    vector_element_t** tail = vector->items[vector->size];
+    vector_element_t** tail = vector->items[vector->size - 1];
 
     for (int64_t i = 0; i < elementsToCreate; i++) {
-        vector_element_t** slot = tail + i;
+        vector_element_t** slot = tail++;
 
         *slot = temp[i];
     }
@@ -957,7 +970,7 @@ vector_result_t vector_swap(vector_t *const vector, const int64_t index1, const 
 }
 
 vector_result_t vector_element_free(vector_element_t **element) {
-    if (element != NULL || *element == NULL)
+    if (element == NULL || *element == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
     free((*element)->value);
@@ -993,8 +1006,13 @@ vector_result_t vector_iterator_create(vector_t *vector, vector_iterator_t **ite
 
 vector_result_t vector_iterator_next(vector_iterator_t *iterator)
 {
-    if (iterator == NULL)
+    if (iterator == NULL) {
         return VECTOR_INVALID_PARAMS_ERROR;
+    }
+    else if (iterator->vector->size == 0) {
+        iterator->element = NULL;
+        return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
+    }
     else if (iterator->index + 1 >= iterator->vector->size)
     {
         iterator->index = -1;
@@ -1003,21 +1021,8 @@ vector_result_t vector_iterator_next(vector_iterator_t *iterator)
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
     }
 
-    if (iterator->index == -1)
-    {
-        if (iterator->vector->size == 0)
-            iterator->element = NULL;
-            return VECTOR_SUCCESS;
-
-
-        iterator->index = 0;
-        iterator->element = iterator->vector->items[iterator->index];
-    }
-    else
-    {
-        iterator->index++;
-        iterator->element = iterator->vector->items[iterator->index];
-    }
+    iterator->index++;
+    iterator->element = iterator->vector->items[iterator->index];
 
     return VECTOR_SUCCESS;
 }
@@ -1035,7 +1040,7 @@ vector_result_t vector_iterator_rewind(vector_iterator_t *const iterator)
 
 vector_result_t vector_iterator_free(vector_iterator_t **iterator)
 {
-    if (iterator != NULL || *iterator == NULL)
+    if (iterator == NULL || *iterator == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
     (*iterator)->vector = NULL;
