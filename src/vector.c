@@ -336,10 +336,15 @@ static vector_result_t default_print(
     size_t size,
     FILE *stream)
 {
-    if (value == NULL)
-        fprintf(stream, "NULL");
+    int streamPrintResult;
 
-    fprintf(stream, "%p", value);
+    if (value == NULL)
+        streamPrintResult = fprintf(stream, "NULL");
+    else
+        streamPrintResult = fprintf(stream, "%p", value);
+
+    if (streamPrintResult != 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     return VECTOR_SUCCESS;
 }
@@ -600,6 +605,7 @@ vector_result_t vector_remove(vector_t *vector, const int64_t index)
     for (int64_t i = index; i < vector->size; i++)
         vector->items[i] = vector->items[i + 1];
 
+    vector_element_free(&vector->items[vector->size - 1]);
     vector->size--;
     return VECTOR_SUCCESS;
 }
@@ -626,6 +632,7 @@ vector_result_t vector_pop(vector_t *const vector, const int64_t index, vector_e
     for (int64_t i = index; i < vector->size - 1; i++)
         vector->items[i] = vector->items[i + 1];
 
+    vector_element_free(&vector->items[vector->size - 1]);
     vector->size--;
     return VECTOR_SUCCESS;
 }
@@ -723,6 +730,12 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
+
+    int64_t joinedCapacity = vector1->capacity + vector2->capacity;
+
+    if (joinedCapacity <= SIZE_MAX / sizeof(vector_element_t)) {
+        return VECTOR_INVALID_PARAMS_ERROR;
+    }
 
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
@@ -890,18 +903,36 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
 
-    for (int64_t i = vector->size; i < vector->capacity; i++)
+    int64_t elementsToCreate = vector->capacity - vector->size;
+    vector_element_t** temp = (vector_element_t** ) malloc(elementsToCreate * sizeof(vector_element_t*));
+
+    if (temp == NULL)
+        return VECTOR_ALLOCATION_FAILURE;
+
+    for (int64_t i = 0; i < elementsToCreate; i++)
     {
         vector_element_t *element;
         vector_result_t result = vector_element_create(value, size, &element);
 
-        if (result != VECTOR_SUCCESS)
+        if (result != VECTOR_SUCCESS) {
+            free(temp);
             return result;
+        }
 
-        vector->items[i] = element;
-        vector->size++;
+        temp[i] = element;
     }
 
+    vector_element_t** tail = vector->items[vector->size];
+
+    for (int64_t i = 0; i < elementsToCreate; i++) {
+        vector_element_t** slot = tail + i;
+
+        *slot = temp[i];
+    }
+
+    vector->size = vector->capacity;
+
+    free(temp);
     return VECTOR_SUCCESS;
 }
 
