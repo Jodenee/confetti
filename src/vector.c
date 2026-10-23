@@ -156,6 +156,11 @@ static vector_result_t default_sort(vector_t *const vector, const bool ascending
 
 static vector_result_t vector_element_create(const void *const value, const size_t size, vector_element_t **elementOut)
 {
+    if (elementOut == NULL || *elementOut != NULL)
+        return VECTOR_INVALID_PARAMS_ERROR;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
+
     vector_element_t *element = (vector_element_t *)malloc(sizeof(vector_element_t));
 
     if (element == NULL)
@@ -185,12 +190,24 @@ static vector_result_t vector_element_create(const void *const value, const size
 
 static vector_result_t vector_element_set(vector_element_t *const element, const void *value, const size_t size)
 {
-    if (value == NULL)
-    {
-        if (element->value != NULL)
+    if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
+
+    if (element->value == NULL) {
+        if (value == NULL) {
+            element->value = NULL;
+            return VECTOR_SUCCESS;
+        }
+    }
+
+    if (element->value != NULL) {
+        if (value == NULL) {
             free(element->value);
 
-        element->value = NULL;
+            element->value = NULL;
+            element->size = size;
+            return VECTOR_SUCCESS;
+        }
     }
 
     if (size != element->size)
@@ -281,8 +298,8 @@ static vector_result_t vector_realloc_capacity(
 static int32_t default_equality(
     const void *const data1,
     const void *const data2,
-    const size_t size)
-{
+    const size_t size
+) {
     if (data1 == NULL && data2 == NULL)
         return 0;
 
@@ -352,7 +369,7 @@ static vector_result_t default_print(
     else
         streamPrintResult = fprintf(stream, "%p", value);
 
-    if (streamPrintResult > 0)
+    if (streamPrintResult < 0)
         return VECTOR_INVALID_PARAMS_ERROR;
 
     return VECTOR_SUCCESS;
@@ -369,10 +386,13 @@ vector_result_t vector_create(
     vector_custom_equality_function_t const customEquality,
     vector_custom_sorting_function_t const customSort,
     vector_custom_print_function_t const customPrint,
-    vector_t **vectorOut)
-{
+    vector_t **vectorOut
+) {
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
+    else if (capacity >= 1 && capacity >= SIZE_MAX / sizeof(vector_element_t*)) {
+        return VECTOR_INVALID_PARAMS_ERROR;
+    }
 
     vector_t *vector = (vector_t *)malloc(sizeof(vector_t));
 
@@ -432,6 +452,11 @@ vector_result_t vector_print(vector_t *vector, FILE *stream)
 
     FILE *outputStream = stream == NULL ? stdout : stream;
 
+    if (vector->size == 0) {
+        fprintf(outputStream, "[ ] -> %p\n", vector);
+        return VECTOR_SUCCESS;
+    }
+
     fprintf(outputStream, "[");
 
     for (int64_t i = 0LL; i < vector->size; i++)
@@ -473,6 +498,8 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     if (vector->size == vector->capacity)
     {
@@ -501,6 +528,8 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     if (vector->size == vector->capacity)
     {
@@ -526,6 +555,8 @@ vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const
         return VECTOR_NULL_ERROR;
     else if (index > vector->size || index < 0)
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     if (vector->size == vector->capacity)
     {
@@ -728,7 +759,12 @@ vector_result_t vector_clear(vector_t *const vector)
 
     for (int64_t i = 0; i < vector->size; i++)
     {
-        vector_element_free(&vector->items[i]);
+        vector_result_t freeResult = vector_element_free(&vector->items[i]);
+
+        if (freeResult != VECTOR_SUCCESS) {
+            vector->size -= i + 1;
+            return freeResult;
+        }
     }
 
     vector->size = 0;
@@ -745,13 +781,13 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     int64_t joinedCapacity = vector1->capacity + vector2->capacity;
 
-    if (joinedCapacity >= SIZE_MAX / sizeof(vector_element_t)) {
+    if (joinedCapacity >= 1 && joinedCapacity >= SIZE_MAX / sizeof(vector_element_t*)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
 
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
-        (vector1->capacity + vector2->capacity),
+        joinedCapacity,
         vector1->equality,
         vector1->sort,
         vector1->print,
@@ -804,6 +840,8 @@ vector_result_t vector_includes(vector_t *const vector, void *value, const size_
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     for (int64_t i = 0LL; i < vector->size; i++)
     {
@@ -840,6 +878,10 @@ vector_result_t vector_find_first(
         *indexOut = -1;
         return VECTOR_INVALID_PARAMS_ERROR;
     }
+    else if (size == 0) {
+        *indexOut = -1;
+        return VECTOR_INVALID_PARAMS_ERROR;
+    }
 
     int64_t index = startIndex > 0LL ? startIndex : 0LL;
 
@@ -866,8 +908,8 @@ vector_result_t vector_find_last(
     const int64_t startIndex,
     void *value,
     const size_t size,
-    int64_t *indexOut)
-{
+    int64_t *indexOut
+) {
     if (indexOut == NULL)
     {
         return VECTOR_INVALID_PARAMS_ERROR;
@@ -882,7 +924,11 @@ vector_result_t vector_find_last(
         *indexOut = -1;
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
     }
-
+    else if (size == 0) {
+        *indexOut = -1;
+        return VECTOR_INVALID_PARAMS_ERROR;
+    }
+        
     int64_t index = -1;
 
     for (int64_t i = startIndex; i < vector->size; i++)
@@ -914,6 +960,10 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
+    else if (vector->size == vector->capacity)
+        return VECTOR_SUCCESS;
+    else if (size == 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     int64_t elementsToCreate = vector->capacity - vector->size;
     vector_element_t** temp = (vector_element_t** ) malloc(elementsToCreate * sizeof(vector_element_t*));
@@ -923,12 +973,12 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
 
     for (int64_t i = 0; i < elementsToCreate; i++)
     {
-        vector_element_t *element;
+        vector_element_t *element = NULL;
         vector_result_t result = vector_element_create(value, size, &element);
 
         if (result != VECTOR_SUCCESS) {
             for (int64_t j = 0; j < i; j++){
-                vector_element_free(&temp[i]);
+                vector_element_free(&temp[j]);
             }
 
             free(temp);
