@@ -40,6 +40,10 @@ typedef struct vector_element vector_element_t;
 typedef struct vector_iterator vector_iterator_t;
 typedef enum vector_result vector_result_t;
 
+typedef int64_t (*vector_growing_strategy_function_t)(
+    const int64_t currentCapacity
+);
+
 /**
  * @brief Type definition for a custom equality function for vector elements.
  *
@@ -57,7 +61,7 @@ typedef enum vector_result vector_result_t;
  * 
  * @return An int32_t indicating the comparison result.
  */
-typedef int32_t (*vector_custom_equality_function_t)(const void* const data1, const void* const data2, const size_t size);
+typedef int32_t (*vector_equality_function_t)(const void* const data1, const void* const data2, const size_t size);
 
 /**
  * @brief Type definition for a custom sorting function for a vector.
@@ -70,9 +74,9 @@ typedef int32_t (*vector_custom_equality_function_t)(const void* const data1, co
  * 
  * @return A vector_result_t indicating the outcome of the sorting operation.
  */
-typedef vector_result_t (*vector_custom_sorting_function_t)(vector_t* const vector, const bool ascending);
+typedef vector_result_t (*vector_sorting_function_t)(vector_t* const vector, const bool ascending);
 
-typedef vector_result_t (*vector_custom_print_function_t)(
+typedef vector_result_t (*vector_print_function_t)(
     const void *value,
     size_t size,
     FILE *stream
@@ -95,12 +99,13 @@ typedef struct vector_element {
  * along with metadata for managing size, capacity, and custom behavior.
  */
 typedef struct vector {
-    int64_t size;                                      /* Current number of elements in the vector. */
-    int64_t capacity;                                  /* Total allocated capacity for elements. */
-    vector_element_t** items;                          /* Array of pointers to vector elements. */
-    vector_custom_equality_function_t equality; /* custom equality function for comparing elements. */
-    vector_custom_sorting_function_t sort;      /* custom sorting function for ordering elements. */
-    vector_custom_print_function_t print;        /* custom printing function for displaying elements with vector_print. */
+    int64_t size;                                        /* Current number of elements in the vector. */
+    int64_t capacity;                                    /* Total allocated capacity for elements. */
+    vector_element_t** items;                            /* Array of pointers to vector elements. */
+    vector_equality_function_t equality;                 /* function for comparing elements. */
+    vector_sorting_function_t sort;                      /* function for ordering elements. */
+    vector_print_function_t print;                       /* function for displaying elements with vector_print. */
+    vector_growing_strategy_function_t growingStrategy;  /* function for calculating the vector's new capacity when full. */
 } vector_t;
 
 /**
@@ -203,9 +208,10 @@ typedef enum vector_result {
  */
 CONFETTI_EXPORT vector_result_t vector_create(
     const int64_t capacity,
-    vector_custom_equality_function_t const customEquality,
-    vector_custom_sorting_function_t const customSort,
-    vector_custom_print_function_t const customPrint,
+    vector_growing_strategy_function_t const grow,
+    vector_equality_function_t const equality,
+    vector_sorting_function_t const sort,
+    vector_print_function_t const print,
     vector_t** vectorOut);
 
 /**

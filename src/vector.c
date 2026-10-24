@@ -25,7 +25,7 @@ If not, see <https://www.gnu.org/licenses/>.
 typedef struct vector_sort_context
 {
     bool ascending;
-    vector_custom_equality_function_t equality;
+    vector_equality_function_t equality;
 } vector_sort_context_t;
 
 #pragma endregion
@@ -268,21 +268,21 @@ static vector_result_t vector_realloc_capacity(
         return VECTOR_SUCCESS;
     else if (newCapacity < vector->size)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if ((uint64_t)newCapacity > SIZE_MAX / sizeof(*vector->items))
+    else if ((uint64_t)newCapacity > SIZE_MAX / sizeof(vector_element_t*))
         return VECTOR_INVALID_PARAMS_ERROR;
 
     vector_element_t **newItems = NULL;
 
     if (newCapacity > 0)
     {
-        newItems = malloc((size_t)newCapacity * sizeof(*newItems));
+        newItems = malloc((size_t)newCapacity * sizeof(vector_element_t**));
         if (newItems == NULL)
             return VECTOR_ALLOCATION_FAILURE;
 
         memcpy(
             newItems,
             vector->items,
-            (size_t)vector->size * sizeof(*newItems));
+            (size_t)vector->size * sizeof(vector_element_t**));
 
         for (int64_t i = vector->size; i < newCapacity; ++i)
             newItems[i] = NULL;
@@ -320,39 +320,134 @@ static int32_t default_equality(
     return 0;
 }
 
-static int default_sort_compare(void *ctx, const void *a, const void *b)
+static int64_t default_growing_strategy(int64_t const currentCapacity)
 {
-    vector_sort_context_t *context = (vector_sort_context_t *)ctx;
-    vector_element_t *elementOne = *(vector_element_t *const *)a;
-    vector_element_t *elementTwo = *(vector_element_t *const *)b;
-
-    if (context->ascending)
-        return context->equality(elementOne->value, elementTwo->value, elementOne->size);
-    else
-        return context->equality(elementTwo->value, elementOne->value, elementOne->size);
+    return currentCapacity * 2;
 }
 
-static vector_result_t default_sort(vector_t* const vector, const bool ascending)
-{
-    size_t expectedElementValueSize = vector->items[0]->size;
+static void vector_quicksort_range(
+    vector_t *vector,
+    size_t low,
+    size_t high,
+    bool ascending
+) {
+    while (low < high) {
+        size_t left = low;
+        size_t right = high;
+        size_t pivot_index = low + (high - low) / 2;
 
-    for (int64_t i = 0; i < vector->size; i++) {
-        vector_element_t* element = vector->items[i];
+        /*
+         * The pivot is a pointer to the element, not a copy
+         * of its payload. Keep it stable while swapping slots.
+         */
+        vector_element_t *pivot = vector->items[pivot_index];
 
-        if (element->size != expectedElementValueSize)
-            return VECTOR_INVALID_PARAMS_ERROR; 
+        while (left <= right) {
+            int comparison;
+
+            while (left <= high) {
+                vector_element_t* left_element = vector->items[left];
+
+                comparison = vector->equality(
+                    left_element->value,
+                    pivot->value,
+                    left_element->size
+                );
+
+                if (!ascending) {
+                    comparison = -comparison;
+                }
+
+                if (comparison >= 0) {
+                    break;
+                }
+
+                ++left;
+            }
+
+            while (right >= low) {
+                vector_element_t* rightElement = vector->items[right];
+
+                comparison = vector->equality(
+                    rightElement->value,
+                    pivot->value,
+                    rightElement->size
+                );
+
+                if (!ascending) {
+                    comparison = -comparison;
+                }
+
+                if (comparison <= 0) {
+                    break;
+                }
+
+                /*
+                 * Avoid unsigned underflow.
+                 */
+                if (right == 0) {
+                    break;
+                }
+
+                --right;
+            }
+
+            if (left > right) {
+                break;
+            }
+
+            if (left != right) {
+                vector_swap(
+                    vector,
+                    left,
+                    right
+                );
+            }
+
+            ++left;
+
+            if (right == 0) {
+                break;
+            }
+
+            --right;
+        }
+
+        /*
+         * Recurse into the smaller partition and iterate over
+         * the larger one to limit stack usage.
+         */
+        if (right >= low && right - low < high - left + 1) {
+            if (low < right) {
+                vector_quicksort_range(
+                    vector, low, right, ascending
+                );
+            }
+
+            low = left;
+        } else {
+            if (left < high) {
+                vector_quicksort_range(
+                    vector, left, high, ascending
+                );
+            }
+
+            if (right < low || right == 0) {
+                break;
+            }
+
+            high = right;
+        }
     }
+}
 
-    vector_sort_context_t context = {
-        .ascending = ascending,
-        .equality = vector->equality};
-
-    qsort_s(
-        vector->items,
-        vector->size,
-        sizeof(vector_element_t *),
-        default_sort_compare,
-        &context);
+static vector_result_t default_sort(vector_t *vector, bool ascending) {
+    vector_quicksort_range(
+        vector,
+        0,
+        vector->size - 1,
+        ascending
+    );
 
     return VECTOR_SUCCESS;
 }
@@ -383,10 +478,11 @@ static vector_result_t default_print(
 
 vector_result_t vector_create(
     const int64_t capacity,
-    vector_custom_equality_function_t const customEquality,
-    vector_custom_sorting_function_t const customSort,
-    vector_custom_print_function_t const customPrint,
-    vector_t **vectorOut
+    vector_growing_strategy_function_t const growingStrategy,
+    vector_equality_function_t const equality,
+    vector_sorting_function_t const sort,
+    vector_print_function_t const print,
+    vector_t** vectorOut
 ) {
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
@@ -402,9 +498,10 @@ vector_result_t vector_create(
     vector->size = 0;
     vector->capacity = capacity < 1 ? DEFAULT_VECTOR_CAPACITY : capacity;
     vector->items = (vector_element_t **)calloc(vector->capacity, sizeof(vector_element_t *));
-    vector->equality = customEquality == NULL ? default_equality : customEquality;
-    vector->sort = customSort == NULL ? default_sort : customSort;
-    vector->print = customPrint == NULL ? default_print : customPrint;
+    vector->equality = equality == NULL ? default_equality : equality;
+    vector->sort = sort == NULL ? default_sort : sort;
+    vector->print = print == NULL ? default_print : print;
+    vector->growingStrategy = growingStrategy == NULL ? default_growing_strategy : growingStrategy;
 
     if (vector->items == NULL)
     {
@@ -503,7 +600,7 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->capacity * 2);
+        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
 
         if (result != VECTOR_SUCCESS)
             return result;
@@ -533,13 +630,13 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->capacity * 2);
+        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
 
         if (result != VECTOR_SUCCESS)
             return result;
     }
 
-    vector_element_t *element;
+    vector_element_t *element = NULL;
     vector_result_t result = vector_element_create(value, size, &element);
 
     if (result != VECTOR_SUCCESS)
@@ -560,7 +657,7 @@ vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->capacity * 2);
+        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
 
         if (result != VECTOR_SUCCESS)
             return result;
@@ -715,37 +812,29 @@ vector_result_t vector_clone(vector_t *const vector, vector_t **vectorOut)
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
-    vector_t *vectorClone = (vector_t *)malloc(sizeof(vector_t));
+    vector_t *vectorClone = NULL;
+    vector_result_t vectorCloneResult = vector_create(
+        vector->capacity, 
+        vector->growingStrategy,
+        vector->equality,
+        vector->sort,
+        vector->print,
+        &vectorClone
+    );
 
-    if (vectorClone == NULL)
-        return VECTOR_ALLOCATION_FAILURE;
-
-    vectorClone->size = 0;
-    vectorClone->capacity = vector->capacity;
-    vectorClone->items = (vector_element_t **)calloc(vectorClone->capacity, sizeof(vector_element_t *));
-    vectorClone->equality = vector->equality;
-    vectorClone->sort = vector->sort;
-    vectorClone->print = vector->print;
-
-    if (vectorClone->items == NULL)
-    {
-        free(vectorClone);
-        return VECTOR_ALLOCATION_FAILURE;
-    }
+    if (vectorCloneResult != VECTOR_SUCCESS)
+        return vectorCloneResult;
 
     for (int64_t i = 0LL; i < vector->size; i++)
     {
-        vector_element_t *elementClone;
-        vector_result_t result = vector_element_clone(vector->items[i], &elementClone);
+        vector_element_t* element = vector->items[i];
+        vector_result_t insertResult = vector_insert(vectorClone, i, element->value, element->size);
 
-        if (result != VECTOR_SUCCESS)
+        if (insertResult != VECTOR_SUCCESS)
         {
             vector_free(&vectorClone);
-            return result;
+            return insertResult;
         }
-
-        vectorClone->items[i] = elementClone;
-        vectorClone->size++;
     }
 
     *vectorOut = vectorClone;
@@ -788,6 +877,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
         joinedCapacity,
+        vector1->growingStrategy,
         vector1->equality,
         vector1->sort,
         vector1->print,
