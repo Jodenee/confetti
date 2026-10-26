@@ -119,8 +119,8 @@ typedef struct vector {
  * @param index The current index.
  * @param element A pointer to the current element.
  * 
- * @warning Please do not manually free anything witin this structure as 
- * they are the internal values kept by the linked vector. If you wish 
+ * @warning Please do not manually free anything within this structure as 
+ * they are the internal values kept by the vector. If you wish 
  * to deallocate memory from this structure please use `vector_iterator_free` to safely do so.
  */
 typedef struct vector_iterator {
@@ -161,7 +161,7 @@ typedef enum vector_result {
     VECTOR_ELEMENT_NOT_FOUND_ERROR = -2,
 
     /**
-     * @brief Error: List is null.
+     * @brief Error: Vector is null.
      * 
      * This error occurs when an operation is attempted on a vector
      * that has not been initialized (i.e., it is null).
