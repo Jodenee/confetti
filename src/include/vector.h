@@ -62,7 +62,12 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
  * 
  * @return An int32_t indicating the comparison result.
  */
-typedef int32_t (*vector_equality_function_t)(const void* const data1, const void* const data2, const size_t size);
+typedef int32_t (*vector_equality_function_t)(
+    const void *const dataOne,
+    const void *const dataTwo,
+    const size_t dataOneSize,
+    const size_t dataTwoSize
+);
 
 /**
  * @brief Type definition for a custom sorting function for a vector.

@@ -116,8 +116,8 @@ static vector_result_t vector_realloc_capacity(vector_t *const vector, const int
  * This function checks if two data elements are equal by comparing their values. It handles NULL pointers
  * and uses `memcmp` for the actual comparison of non-NULL data.
  *
- * @param data1 A pointer to the first data element to compare.
- * @param data2 A pointer to the second data element to compare.
+ * @param dataOne A pointer to the first data element to compare.
+ * @param dataTwo A pointer to the second data element to compare.
  * @param size The size of the data elements to be compared.
  *
  * @return
@@ -131,7 +131,12 @@ static vector_result_t vector_realloc_capacity(vector_t *const vector, const int
  *
  * @note This function assumes that the size parameter is valid and corresponds to the size of the data elements.
  */
-static int default_equality(const void *const data1, const void *const data2, const size_t size);
+static int32_t default_equality(
+    const void *const dataOne,
+    const void *const dataTwo,
+    const size_t dataOneSize,
+    const size_t dataTwoSize
+);
 
 /**
  * @brief Sorts the elements of the vector using a specified sorting order.
@@ -154,17 +159,14 @@ static vector_result_t default_sort(vector_t *const vector, const bool ascending
 
 #pragma region private functions
 
-bool safe_add_int64(int64_t a, int64_t b, int64_t *result)
+bool safe_add_int64(int64_t numberOne, int64_t numberTwo, int64_t *result)
 {
-    if (result == NULL) {
+    if (result == NULL)
         return false;
-    }
+    else if (numberOne > SIZE_MAX - numberTwo)
+        return false;
 
-    if (a > SIZE_MAX - b) {
-        return false; // Overflow
-    }
-
-    *result = a + b;
+    *result = numberOne + numberTwo;
     return true;
 }
 
@@ -212,6 +214,7 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
     if (element->value == NULL) {
         if (value == NULL) {
             element->value = NULL;
+            element->size = size;
             return VECTOR_SUCCESS;
         }
     }
@@ -297,7 +300,7 @@ static vector_result_t vector_realloc_capacity(
 
     if (newCapacity > 0)
     {
-        newItems = malloc((size_t)newCapacity * sizeof(vector_element_t**));
+        newItems = malloc((size_t)newCapacity * sizeof(vector_element_t*));
         if (newItems == NULL)
             return VECTOR_ALLOCATION_FAILURE;
 
@@ -318,20 +321,21 @@ static vector_result_t vector_realloc_capacity(
 }
 
 static int32_t default_equality(
-    const void *const data1,
-    const void *const data2,
-    const size_t size
+    const void *const dataOne,
+    const void *const dataTwo,
+    const size_t dataOneSize,
+    const size_t dataTwoSize
 ) {
-    if (data1 == NULL && data2 == NULL)
+    if (dataOne == NULL && dataTwo == NULL)
         return 0;
 
-    if (data1 == NULL)
+    if (dataOne == NULL)
         return -1;
 
-    if (data2 == NULL)
+    if (dataTwo == NULL)
         return 1;
 
-    int result = memcmp(data1, data2, size);
+    int result = memcmp(dataOne, dataTwo, dataOneSize);
 
     if (result > 0)
         return 1;
@@ -383,7 +387,8 @@ static void vector_quicksort_range(
                 comparison = vector->equality(
                     left_element->value,
                     pivot->value,
-                    left_element->size
+                    left_element->size,
+                    pivot->size
                 );
 
                 if (!ascending) {
@@ -403,7 +408,8 @@ static void vector_quicksort_range(
                 comparison = vector->equality(
                     rightElement->value,
                     pivot->value,
-                    rightElement->size
+                    rightElement->size,
+                    pivot->size
                 );
 
                 if (!ascending) {
@@ -737,7 +743,7 @@ vector_result_t vector_get(vector_t *vector, const int64_t index, vector_element
     else if (elementOut == NULL || *elementOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
-    vector_element_t *element;
+    vector_element_t *element = NULL;
     vector_result_t result = vector_element_clone(vector->items[index], &element);
 
     if (result != VECTOR_SUCCESS)
@@ -761,7 +767,7 @@ vector_result_t vector_set(vector_t *vector, const int64_t index, void *const va
 
     if (vector->items[index] == NULL)
     {
-        vector_element_t *element;
+        vector_element_t *element = NULL;
         vector_result_t result = vector_element_create(value, size, &element);
 
         if (result == VECTOR_SUCCESS)
@@ -896,7 +902,7 @@ vector_result_t vector_clear(vector_t *const vector)
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
 
-    for (int64_t i = 0; i < vector->size; i++)
+    for (int64_t i = vector->size-1; i > 0; i--)
     {
         vector_result_t freeResult = vector_element_free(&vector->items[i]);
 
@@ -943,7 +949,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     for (int64_t i = 0; i < vector1->size; i++)
     {
-        vector_element_t *element;
+        vector_element_t *element = NULL;
         vector_result_t cloneResult = vector_element_clone(vector1->items[i], &element);
 
         if (cloneResult != VECTOR_SUCCESS)
@@ -960,7 +966,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     for (int64_t i = 0; i < vector2->size; i++)
     {
-        vector_element_t *element;
+        vector_element_t *element = NULL;
         vector_result_t cloneResult = vector_element_clone(vector2->items[i], &element);
 
         if (cloneResult != VECTOR_SUCCESS)
@@ -993,7 +999,7 @@ vector_result_t vector_includes(vector_t *const vector, void *value, const size_
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size) == 0)
+        if (vector->equality(element->value, value, element->size, size) == 0)
             return VECTOR_SUCCESS;
     }
 
@@ -1035,7 +1041,7 @@ vector_result_t vector_find_first(
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size) == 0)
+        if (vector->equality(element->value, value, element->size, size) == 0)
         {
             *indexOut = i;
             return VECTOR_SUCCESS;
@@ -1081,7 +1087,7 @@ vector_result_t vector_find_last(
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size) == 0)
+        if (vector->equality(element->value, value, element->size, size) == 0)
             index = i;
     }
 
