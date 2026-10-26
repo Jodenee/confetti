@@ -154,7 +154,7 @@ static vector_result_t default_sort(vector_t *const vector, const bool ascending
 
 #pragma region private functions
 
-bool safe_add_size(size_t a, size_t b, size_t *result)
+bool safe_add_int64(int64_t a, int64_t b, int64_t *result)
 {
     if (result == NULL) {
         return false;
@@ -246,6 +246,11 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
 
 static vector_result_t vector_element_clone(vector_element_t *const element, vector_element_t **elementOut)
 {
+    if (element == NULL)
+        return VECTOR_INVALID_PARAMS_ERROR;
+    if (elementOut == NULL || *elementOut != NULL)
+        return VECTOR_INVALID_PARAMS_ERROR;
+
     vector_element_t *elementClone = (vector_element_t *)malloc(sizeof(vector_element_t));
 
     if (elementClone == NULL)
@@ -337,17 +342,19 @@ static int32_t default_equality(
     return 0;
 }
 
-static int64_t default_growing_strategy(int64_t const currentCapacity)
+static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t* const newCapacityOut)
 {
     if (currentCapacity > SIZE_MAX / 2) 
-        return currentCapacity;
+        return VECTOR_SIZE_LIMIT_REACHED;
 
     int64_t newCapacity = currentCapacity * 2;
 
     if (newCapacity > SIZE_MAX / sizeof(vector_element_t *)) 
-        return currentCapacity;
-    else
-        return newCapacity;
+        return VECTOR_SIZE_LIMIT_REACHED;
+    else {
+        *newCapacityOut = newCapacity;
+        return VECTOR_SUCCESS;
+    }
 }
 
 static void vector_quicksort_range(
@@ -625,10 +632,16 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
+        int64_t newCapacity = -1;
+        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
-        if (result != VECTOR_SUCCESS)
-            return result;
+        if (growResult != VECTOR_SUCCESS)
+            return growResult;
+
+        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+
+        if (reallocResult != VECTOR_SUCCESS)
+            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -655,10 +668,16 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
+        int64_t newCapacity = -1;
+        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
-        if (result != VECTOR_SUCCESS)
-            return result;
+        if (growResult != VECTOR_SUCCESS)
+            return growResult;
+
+        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+
+        if (reallocResult != VECTOR_SUCCESS)
+            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -682,10 +701,16 @@ vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const
 
     if (vector->size == vector->capacity)
     {
-        vector_result_t result = vector_realloc_capacity(vector, vector->growingStrategy(vector->capacity));
+        int64_t newCapacity = -1;
+        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
-        if (result != VECTOR_SUCCESS)
-            return result;
+        if (growResult != VECTOR_SUCCESS)
+            return growResult;
+
+        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+
+        if (reallocResult != VECTOR_SUCCESS)
+            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -876,13 +901,12 @@ vector_result_t vector_clear(vector_t *const vector)
         vector_result_t freeResult = vector_element_free(&vector->items[i]);
 
         if (freeResult != VECTOR_SUCCESS) {
-            vector->size -= i + 1;
+            vector->size -= i;
             return freeResult;
         }
-
-        vector->size--;
     }
 
+    vector->size = 0;
     return VECTOR_SUCCESS;
 }
 
@@ -896,7 +920,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
 
     int64_t joinedCapacity;
     
-    if (!safe_add_size(vector1->capacity, vector2->capacity, &joinedCapacity)) {
+    if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
     else if (joinedCapacity >= 1 && joinedCapacity > SIZE_MAX / sizeof(vector_element_t*)) {

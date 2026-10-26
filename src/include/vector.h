@@ -40,8 +40,9 @@ typedef struct vector_element vector_element_t;
 typedef struct vector_iterator vector_iterator_t;
 typedef enum vector_result vector_result_t;
 
-typedef int64_t (*vector_growing_strategy_function_t)(
-    const int64_t currentCapacity
+typedef vector_result_t (*vector_growing_strategy_function_t)(
+    const int64_t currentCapacity,
+    int64_t* const newCapacityOut
 );
 
 /**
@@ -182,7 +183,9 @@ typedef enum vector_result {
      * This error occurs when the system is unable to allocate
      * the necessary memory for the operation.
      */
-    VECTOR_ALLOCATION_FAILURE = -5
+    VECTOR_ALLOCATION_FAILURE = -5,
+
+    VECTOR_SIZE_LIMIT_REACHED = -6,
 } vector_result_t;
 
 // public function definitions
