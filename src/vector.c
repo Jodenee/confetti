@@ -18,18 +18,6 @@ If not, see <https://www.gnu.org/licenses/>.
 
 #include "vector.h"
 
-// private definitions
-
-#pragma region private definitions
-
-typedef struct vector_sort_context
-{
-    bool ascending;
-    vector_equality_function_t equality;
-} vector_sort_context_t;
-
-#pragma endregion
-
 // private function definitions
 
 #pragma region private function definitions
@@ -111,7 +99,7 @@ static vector_result_t vector_element_clone(vector_element_t *const element, vec
 static vector_result_t vector_realloc_capacity(vector_t *const vector, const int64_t capacity);
 
 /**
- * @brief Compares two data elements for equality.
+ * @brief Compares two data elements for compare.
  *
  * This function checks if two data elements are equal by comparing their values. It handles NULL pointers
  * and uses `memcmp` for the actual comparison of non-NULL data.
@@ -131,7 +119,7 @@ static vector_result_t vector_realloc_capacity(vector_t *const vector, const int
  *
  * @note This function assumes that the size parameter is valid and corresponds to the size of the data elements.
  */
-static int32_t default_equality(
+static int32_t default_compare(
     const void *const dataOne,
     const void *const dataTwo,
     const size_t dataOneSize,
@@ -144,7 +132,7 @@ static int32_t default_equality(
  * This function sorts the elements of the specified vector using
  * the `qsort_s` function. The sorting order is determined by the `ascending`
  * parameter, which specifies whether to sort in ascending or descending order.
- * The function uses the provided custom equality function to compare elements
+ * The function uses the provided custom compare function to compare elements
  * during sorting.
  *
  * @param vector A pointer to the vector whose elements are to be sorted.
@@ -163,7 +151,7 @@ bool safe_add_int64(int64_t numberOne, int64_t numberTwo, int64_t *result)
 {
     if (result == NULL)
         return false;
-    else if (numberOne > SIZE_MAX - numberTwo)
+    else if (numberOne > INT64_MAX - numberTwo)
         return false;
 
     *result = numberOne + numberTwo;
@@ -291,9 +279,9 @@ static vector_result_t vector_realloc_capacity(
         return VECTOR_SUCCESS;
     else if (newCapacity < vector->size)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (newCapacity > SIZE_MAX)
+    else if (newCapacity > INT64_MAX)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if ((uint64_t)newCapacity > SIZE_MAX / sizeof(vector_element_t*))
+    else if ((uint64_t)newCapacity > INT64_MAX / sizeof(vector_element_t*))
         return VECTOR_INVALID_PARAMS_ERROR;
 
     vector_element_t **newItems = NULL;
@@ -320,7 +308,7 @@ static vector_result_t vector_realloc_capacity(
     return VECTOR_SUCCESS;
 }
 
-static int32_t default_equality(
+static int32_t default_compare(
     const void *const dataOne,
     const void *const dataTwo,
     const size_t dataOneSize,
@@ -335,25 +323,32 @@ static int32_t default_equality(
     if (dataTwo == NULL)
         return 1;
 
-    int result = memcmp(dataOne, dataTwo, dataOneSize);
+    size_t smallestSize = dataOneSize < dataTwoSize
+        ? dataOneSize
+        : dataTwoSize;
 
-    if (result > 0)
-        return 1;
+    int result = memcmp(dataOne, dataTwo, smallestSize);
 
-    if (result < 0)
+    if (result != 0)
+        return result < 0 ? -1 : 1;
+
+    if (dataOneSize < dataTwoSize)
         return -1;
+
+    if (dataOneSize > dataTwoSize)
+        return 1;
 
     return 0;
 }
 
 static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t* const newCapacityOut)
 {
-    if (currentCapacity > SIZE_MAX / 2) 
+    if (currentCapacity > INT64_MAX / 2) 
         return VECTOR_SIZE_LIMIT_REACHED;
 
     int64_t newCapacity = currentCapacity * 2;
 
-    if (newCapacity > SIZE_MAX / sizeof(vector_element_t *)) 
+    if (newCapacity > INT64_MAX / sizeof(vector_element_t *)) 
         return VECTOR_SIZE_LIMIT_REACHED;
     else {
         *newCapacityOut = newCapacity;
@@ -384,7 +379,7 @@ static void vector_quicksort_range(
             while (left <= high) {
                 vector_element_t* left_element = vector->items[left];
 
-                comparison = vector->equality(
+                comparison = vector->compare(
                     left_element->value,
                     pivot->value,
                     left_element->size,
@@ -405,7 +400,7 @@ static void vector_quicksort_range(
             while (right >= low) {
                 vector_element_t* rightElement = vector->items[right];
 
-                comparison = vector->equality(
+                comparison = vector->compare(
                     rightElement->value,
                     pivot->value,
                     rightElement->size,
@@ -517,14 +512,14 @@ static vector_result_t default_print(
 vector_result_t vector_create(
     const int64_t capacity,
     vector_growing_strategy_function_t const growingStrategy,
-    vector_equality_function_t const equality,
+    vector_compare_function_t const compare,
     vector_sorting_function_t const sort,
     vector_print_function_t const print,
     vector_t** vectorOut
 ) {
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (capacity >= 1 && capacity > SIZE_MAX / sizeof(vector_element_t*)) {
+    else if (capacity >= 1 && capacity > INT64_MAX / sizeof(vector_element_t*)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
 
@@ -536,7 +531,7 @@ vector_result_t vector_create(
     vector->size = 0;
     vector->capacity = capacity < 1 ? DEFAULT_VECTOR_CAPACITY : capacity;
     vector->items = (vector_element_t **)calloc(vector->capacity, sizeof(vector_element_t *));
-    vector->equality = equality == NULL ? default_equality : equality;
+    vector->compare = compare == NULL ? default_compare : compare;
     vector->sort = sort == NULL ? default_sort : sort;
     vector->print = print == NULL ? default_print : print;
     vector->growingStrategy = growingStrategy == NULL ? default_growing_strategy : growingStrategy;
@@ -872,7 +867,7 @@ vector_result_t vector_clone(vector_t *const vector, vector_t **vectorOut)
     vector_result_t vectorCloneResult = vector_create(
         vector->capacity, 
         vector->growingStrategy,
-        vector->equality,
+        vector->compare,
         vector->sort,
         vector->print,
         &vectorClone
@@ -902,7 +897,7 @@ vector_result_t vector_clear(vector_t *const vector)
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
 
-    for (int64_t i = vector->size-1; i > 0; i--)
+    for (int64_t i = vector->size-1; i >= 0; i--)
     {
         vector_result_t freeResult = vector_element_free(&vector->items[i]);
 
@@ -929,7 +924,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
-    else if (joinedCapacity >= 1 && joinedCapacity > SIZE_MAX / sizeof(vector_element_t*)) {
+    else if (joinedCapacity >= 1 && joinedCapacity > INT64_MAX / sizeof(vector_element_t*)) {
         return VECTOR_INVALID_PARAMS_ERROR;
     }
 
@@ -937,7 +932,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     vector_result_t result = vector_create(
         joinedCapacity,
         vector1->growingStrategy,
-        vector1->equality,
+        vector1->compare,
         vector1->sort,
         vector1->print,
         &joinVector);
@@ -999,7 +994,7 @@ vector_result_t vector_includes(vector_t *const vector, void *value, const size_
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size, size) == 0)
+        if (vector->compare(element->value, value, element->size, size) == 0)
             return VECTOR_SUCCESS;
     }
 
@@ -1041,7 +1036,7 @@ vector_result_t vector_find_first(
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size, size) == 0)
+        if (vector->compare(element->value, value, element->size, size) == 0)
         {
             *indexOut = i;
             return VECTOR_SUCCESS;
@@ -1087,7 +1082,7 @@ vector_result_t vector_find_last(
         if (element->size != size)
             continue;
 
-        if (vector->equality(element->value, value, element->size, size) == 0)
+        if (vector->compare(element->value, value, element->size, size) == 0)
             index = i;
     }
 

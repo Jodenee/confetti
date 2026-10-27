@@ -46,9 +46,9 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
 );
 
 /**
- * @brief Type definition for a custom equality function for vector elements.
+ * @brief Type definition for a custom compare function for vector elements.
  *
- * This function type is used to compare two data elements for equality. It should return:
+ * This function type is used to compare two data elements for compare. It should return:
  * 
  * - A negative value if the first element is less than the second.
  * 
@@ -62,7 +62,7 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
  * 
  * @return An int32_t indicating the comparison result.
  */
-typedef int32_t (*vector_equality_function_t)(
+typedef int32_t (*vector_compare_function_t)(
     const void *const dataOne,
     const void *const dataTwo,
     const size_t dataOneSize,
@@ -108,7 +108,7 @@ typedef struct vector {
     int64_t size;                                        /* Current number of elements in the vector. */
     int64_t capacity;                                    /* Total allocated capacity for elements. */
     vector_element_t** items;                            /* Array of pointers to vector elements. */
-    vector_equality_function_t equality;                 /* function for comparing elements. */
+    vector_compare_function_t compare;                 /* function for comparing elements. */
     vector_sorting_function_t sort;                      /* function for ordering elements. */
     vector_print_function_t print;                       /* function for displaying elements with vector_print. */
     vector_growing_strategy_function_t growingStrategy;  /* function for calculating the vector's new capacity when full. */
@@ -201,12 +201,12 @@ typedef enum vector_result {
  * @brief Creates a new vector with the specified capacity and custom functions.
  * 
  * This function allocates memory for a new vector and initializes its
- * properties, including size, capacity, and optional custom equality
+ * properties, including size, capacity, and optional custom compare
  * and sorting functions. The created vector is returned through the output parameter.
  *
  * @param vectorOut A double pointer to where the created vector will be stored.
  * @param capacity The initial capacity of the vector. If less than 1, the `DEFAULT_VECTOR_CAPACITY` will be used.
- * @param customEqualityFunction A pointer to a custom equality function, or NULL to use the default.
+ * @param customEqualityFunction A pointer to a custom compare function, or NULL to use the default.
  * @param customSortingFunction A pointer to a custom sorting function, or NULL to use the default.
  * 
  * @return 
@@ -217,7 +217,7 @@ typedef enum vector_result {
 CONFETTI_EXPORT vector_result_t vector_create(
     const int64_t capacity,
     vector_growing_strategy_function_t const grow,
-    vector_equality_function_t const equality,
+    vector_compare_function_t const compare,
     vector_sorting_function_t const sort,
     vector_print_function_t const print,
     vector_t** vectorOut);
@@ -469,7 +469,7 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t* const vector1, vector_t* c
  * 
  * This function searches through the specified vector to determine if it
  * contains an element that matches the provided value. It uses the vector's
- * equality function to check for a match.
+ * compare function to check for a match.
  *
  * @param vector A pointer to the vector to be searched.
  * @param value A pointer to the value to search for in the vector.
@@ -489,7 +489,7 @@ CONFETTI_EXPORT vector_result_t vector_includes(vector_t* const vector, void* co
  * 
  * This function searches the specified vector for the first element that
  * matches the provided value, starting from a given index. It uses the
- * vector's equality function to compare the elements.
+ * vector's compare function to compare the elements.
  *
  * @param vector A pointer to the vector to be searched.
  * @param indexOut A pointer to an integer where the index of the found element
@@ -521,7 +521,7 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  * 
  * This function searches the specified vector for the last element that
  * matches the provided value, starting from a given index. It uses the
- * vector's equality function to compare the elements.
+ * vector's compare function to compare the elements.
  *
  * @param vector A pointer to the vector to be searched.
  * @param indexOut A pointer to an integer where the index of the found element
