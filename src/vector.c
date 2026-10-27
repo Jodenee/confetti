@@ -295,7 +295,7 @@ static vector_result_t vector_realloc_capacity(
         memcpy(
             newItems,
             vector->items,
-            (size_t)vector->size * sizeof(vector_element_t**));
+            (size_t)vector->size * sizeof(vector_element_t*));
 
         for (int64_t i = vector->size; i < newCapacity; ++i)
             newItems[i] = NULL;
@@ -341,9 +341,11 @@ static int32_t default_compare(
     return 0;
 }
 
-static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t* const newCapacityOut)
+static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t** const newCapacityOut)
 {
-    if (currentCapacity > INT64_MAX / 2) 
+    if (newCapacityOut == NULL || *newCapacityOut != NULL)
+        return VECTOR_INVALID_PARAMS_ERROR;
+    else if (currentCapacity > INT64_MAX / 2) 
         return VECTOR_SIZE_LIMIT_REACHED;
 
     int64_t newCapacity = currentCapacity * 2;
@@ -351,7 +353,7 @@ static vector_result_t default_growing_strategy(int64_t const currentCapacity, i
     if (newCapacity > INT64_MAX / sizeof(vector_element_t *)) 
         return VECTOR_SIZE_LIMIT_REACHED;
     else {
-        *newCapacityOut = newCapacity;
+        *newCapacityOut = &newCapacity;
         return VECTOR_SUCCESS;
     }
 }
@@ -387,7 +389,9 @@ static void vector_quicksort_range(
                 );
 
                 if (!ascending) {
-                    comparison = -comparison;
+                    comparison = comparison < 0 ? 1
+                        : comparison > 0 ? -1
+                        : 0;
                 }
 
                 if (comparison >= 0) {
@@ -633,13 +637,13 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
 
     if (vector->size == vector->capacity)
     {
-        int64_t newCapacity = -1;
+        int64_t* newCapacity = NULL;
         vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
 
-        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
 
         if (reallocResult != VECTOR_SUCCESS)
             return reallocResult;
@@ -669,13 +673,13 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
 
     if (vector->size == vector->capacity)
     {
-        int64_t newCapacity = -1;
+        int64_t* newCapacity = NULL;
         vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
 
-        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
 
         if (reallocResult != VECTOR_SUCCESS)
             return reallocResult;
@@ -702,13 +706,13 @@ vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const
 
     if (vector->size == vector->capacity)
     {
-        int64_t newCapacity = -1;
+        int64_t* newCapacity = NULL;
         vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
 
-        vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
 
         if (reallocResult != VECTOR_SUCCESS)
             return reallocResult;
@@ -899,12 +903,7 @@ vector_result_t vector_clear(vector_t *const vector)
 
     for (int64_t i = vector->size-1; i >= 0; i--)
     {
-        vector_result_t freeResult = vector_element_free(&vector->items[i]);
-
-        if (freeResult != VECTOR_SUCCESS) {
-            vector->size -= i;
-            return freeResult;
-        }
+        vector_element_free(&vector->items[i]);
     }
 
     vector->size = 0;
@@ -919,14 +918,12 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
-    int64_t joinedCapacity;
+    int64_t joinedCapacity = -1;
     
-    if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity)) {
+    if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity))
         return VECTOR_INVALID_PARAMS_ERROR;
-    }
-    else if (joinedCapacity >= 1 && joinedCapacity > INT64_MAX / sizeof(vector_element_t*)) {
+    else if (joinedCapacity <= 0 || joinedCapacity > INT64_MAX / sizeof(vector_element_t*))
         return VECTOR_INVALID_PARAMS_ERROR;
-    }
 
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
