@@ -291,7 +291,8 @@ static vector_result_t vector_realloc_capacity(
     memcpy(
         newItems,
         vector->items,
-        (size_t)vector->size * sizeof(vector_element_t*));
+        vector->size * sizeof(vector_element_t*)
+    );
 
     for (int64_t i = vector->size; i < newCapacity; ++i)
         newItems[i] = NULL;
