@@ -279,27 +279,22 @@ static vector_result_t vector_realloc_capacity(
         return VECTOR_SUCCESS;
     else if (newCapacity < vector->size)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (newCapacity > INT64_MAX)
-        return VECTOR_INVALID_PARAMS_ERROR;
-    else if ((uint64_t)newCapacity > INT64_MAX / sizeof(vector_element_t*))
-        return VECTOR_INVALID_PARAMS_ERROR;
+    else if (newCapacity > INT64_MAX / sizeof(vector_element_t*))
+        return VECTOR_SIZE_LIMIT_REACHED;
 
     vector_element_t **newItems = NULL;
 
-    if (newCapacity > 0)
-    {
-        newItems = malloc((size_t)newCapacity * sizeof(vector_element_t*));
-        if (newItems == NULL)
-            return VECTOR_ALLOCATION_FAILURE;
+    newItems = (vector_element_t**) malloc(newCapacity * sizeof(vector_element_t*));
+    if (newItems == NULL)
+        return VECTOR_ALLOCATION_FAILURE;
 
-        memcpy(
-            newItems,
-            vector->items,
-            (size_t)vector->size * sizeof(vector_element_t*));
+    memcpy(
+        newItems,
+        vector->items,
+        (size_t)vector->size * sizeof(vector_element_t*));
 
-        for (int64_t i = vector->size; i < newCapacity; ++i)
-            newItems[i] = NULL;
-    }
+    for (int64_t i = vector->size; i < newCapacity; ++i)
+        newItems[i] = NULL;
 
     free(vector->items);
     vector->items = newItems;
@@ -412,7 +407,9 @@ static void vector_quicksort_range(
                 );
 
                 if (!ascending) {
-                    comparison = -comparison;
+                    comparison = comparison < 0 ? 1
+                        : comparison > 0 ? -1
+                        : 0;
                 }
 
                 if (comparison <= 0) {
@@ -524,7 +521,7 @@ vector_result_t vector_create(
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
     else if (capacity >= 1 && capacity > INT64_MAX / sizeof(vector_element_t*)) {
-        return VECTOR_INVALID_PARAMS_ERROR;
+        return VECTOR_SIZE_LIMIT_REACHED;
     }
 
     vector_t *vector = (vector_t *)malloc(sizeof(vector_t));
@@ -923,7 +920,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity))
         return VECTOR_INVALID_PARAMS_ERROR;
     else if (joinedCapacity <= 0 || joinedCapacity > INT64_MAX / sizeof(vector_element_t*))
-        return VECTOR_INVALID_PARAMS_ERROR;
+        return VECTOR_SIZE_LIMIT_REACHED;
 
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
@@ -1107,6 +1104,10 @@ vector_result_t vector_fill(vector_t *const vector, void *const value, const siz
         return VECTOR_INVALID_PARAMS_ERROR;
 
     int64_t elementsToCreate = vector->capacity - vector->size;
+
+    if (elementsToCreate > INT64_MAX / sizeof(vector_element_t*))
+        return VECTOR_SIZE_LIMIT_REACHED;
+
     vector_element_t** temp = (vector_element_t** ) malloc(elementsToCreate * sizeof(vector_element_t*));
 
     if (temp == NULL)
