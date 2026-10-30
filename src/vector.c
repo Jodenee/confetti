@@ -314,7 +314,7 @@ static vector_result_t vector_grow(vector_t* vector) {
     if (growResult != VECTOR_SUCCESS)
         return growResult;
     if (validationResult != VECTOR_SUCCESS)
-        return growResult;
+        return validationResult;
     else if (newCapacity <= vector->capacity)
         return VECTOR_SIZE_LIMIT_REACHED;
 
@@ -650,6 +650,8 @@ vector_result_t vector_resize(vector_t *vector, const int64_t capacity)
         return VECTOR_NULL_ERROR;
     else if (capacity == vector->capacity)
         return VECTOR_SUCCESS;
+    else if (capacity < vector->capacity)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     vector_result_t result = vector_realloc_capacity(vector, capacity);
 
