@@ -98,6 +98,8 @@ static vector_result_t vector_element_clone(vector_element_t *const element, vec
  */
 static vector_result_t vector_realloc_capacity(vector_t *const vector, const int64_t capacity);
 
+static vector_result_t vector_grow(vector_t* vector);
+
 /**
  * @brief Compares two data elements for compare.
  *
@@ -273,14 +275,11 @@ static vector_result_t vector_realloc_capacity(
 {
     if (vector == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (newCapacity <= 0) 
-        return VECTOR_INVALID_PARAMS_ERROR;
-    else if (newCapacity == vector->capacity)
-        return VECTOR_SUCCESS;
-    else if (newCapacity < vector->size)
-        return VECTOR_INVALID_PARAMS_ERROR;
-    else if (newCapacity > INT64_MAX / sizeof(vector_element_t*))
-        return VECTOR_SIZE_LIMIT_REACHED;
+
+    vector_result_t validationResult = validate_capacity(newCapacity);
+
+    if (validationResult != VECTOR_SUCCESS)
+        return validationResult;
 
     vector_element_t **newItems = NULL;
 
@@ -302,6 +301,19 @@ static vector_result_t vector_realloc_capacity(
     vector->capacity = newCapacity;
 
     return VECTOR_SUCCESS;
+}
+
+static vector_result_t vector_grow(vector_t* vector) {
+    int64_t newCapacity = 0;
+    vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
+
+    if (growResult != VECTOR_SUCCESS)
+        return growResult;
+
+    vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
+
+    if (reallocResult != VECTOR_SUCCESS)
+        return reallocResult;
 }
 
 static int32_t default_compare(
@@ -337,7 +349,7 @@ static int32_t default_compare(
     return 0;
 }
 
-static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t** const newCapacityOut)
+static vector_result_t default_growing_strategy(int64_t const currentCapacity, int64_t* const newCapacityOut)
 {
     if (newCapacityOut == NULL || *newCapacityOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
@@ -349,26 +361,22 @@ static vector_result_t default_growing_strategy(int64_t const currentCapacity, i
     if (newCapacity > INT64_MAX / sizeof(vector_element_t *)) 
         return VECTOR_SIZE_LIMIT_REACHED;
     else {
-        *newCapacityOut = &newCapacity;
+        *newCapacityOut = newCapacity;
         return VECTOR_SUCCESS;
     }
 }
 
 static void vector_quicksort_range(
     vector_t *vector,
-    size_t low,
-    size_t high,
+    int64_t low,
+    int64_t high,
     bool ascending
 ) {
     while (low < high) {
-        size_t left = low;
-        size_t right = high;
-        size_t pivot_index = low + (high - low) / 2;
+        int64_t left = low;
+        int64_t right = high;
+        int64_t pivot_index = low + (high - low) / 2;
 
-        /*
-         * The pivot is a pointer to the element, not a copy
-         * of its payload. Keep it stable while swapping slots.
-         */
         vector_element_t *pivot = vector->items[pivot_index];
 
         while (left <= right) {
@@ -477,6 +485,9 @@ static void vector_quicksort_range(
 }
 
 static vector_result_t default_sort(vector_t *vector, bool ascending) {
+    if (vector->size <= 1)
+        return VECTOR_SUCCESS;
+
     vector_quicksort_range(
         vector,
         0,
@@ -505,6 +516,17 @@ static vector_result_t default_print(
     return VECTOR_SUCCESS;
 }
 
+static vector_result_t validate_capacity(int64_t capacity)
+{
+    if (capacity < 0)
+        return VECTOR_INVALID_PARAMS_ERROR;
+
+    if ((uint64_t)capacity > (uint64_t)(SIZE_MAX / sizeof(vector_element_t*)))
+        return VECTOR_SIZE_LIMIT_REACHED;
+
+    return VECTOR_SUCCESS;
+}
+
 #pragma endregion
 
 // public functions
@@ -521,9 +543,11 @@ vector_result_t vector_create(
 ) {
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (capacity >= 1 && capacity > INT64_MAX / sizeof(vector_element_t*)) {
-        return VECTOR_SIZE_LIMIT_REACHED;
-    }
+
+    vector_result_t validationResult = validate_capacity(capacity);
+
+    if (validationResult != VECTOR_SUCCESS)
+        return validationResult;
 
     vector_t *vector = (vector_t *)malloc(sizeof(vector_t));
 
@@ -635,16 +659,10 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
 
     if (vector->size == vector->capacity)
     {
-        int64_t* newCapacity = NULL;
-        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
+        vector_result_t growResult = vector_grow(vector);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
-
-        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
-
-        if (reallocResult != VECTOR_SUCCESS)
-            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -671,16 +689,10 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
 
     if (vector->size == vector->capacity)
     {
-        int64_t* newCapacity = NULL;
-        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
+        vector_result_t growResult = vector_grow(vector);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
-
-        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
-
-        if (reallocResult != VECTOR_SUCCESS)
-            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -704,16 +716,10 @@ vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const
 
     if (vector->size == vector->capacity)
     {
-        int64_t* newCapacity = NULL;
-        vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
+        vector_result_t growResult = vector_grow(vector);
 
         if (growResult != VECTOR_SUCCESS)
             return growResult;
-
-        vector_result_t reallocResult = vector_realloc_capacity(vector, *newCapacity);
-
-        if (reallocResult != VECTOR_SUCCESS)
-            return reallocResult;
     }
 
     vector_element_t *element = NULL;
@@ -1089,8 +1095,6 @@ vector_result_t vector_sort(vector_t *const vector, const bool ascending)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
-    else if (vector->size == 0 || vector->size == 1)
-        return VECTOR_SUCCESS;
 
     return vector->sort(vector, ascending);
 }
@@ -1206,7 +1210,6 @@ vector_result_t vector_iterator_next(vector_iterator_t *iterator)
     }
     else if (iterator->index + 1 >= iterator->vector->size)
     {
-        iterator->index = -1;
         iterator->element = NULL;
 
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;

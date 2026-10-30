@@ -42,7 +42,7 @@ typedef enum vector_result vector_result_t;
 
 typedef vector_result_t (*vector_growing_strategy_function_t)(
     const int64_t currentCapacity,
-    int64_t** const newCapacityOut
+    int64_t* const newCapacityOut
 );
 
 /**
