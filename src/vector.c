@@ -149,14 +149,14 @@ static vector_result_t default_sort(vector_t *const vector, const bool ascending
 
 #pragma region private functions
 
-bool safe_add_int64(int64_t numberOne, int64_t numberTwo, int64_t *result)
+static bool safe_add_int64(int64_t numberOne, int64_t numberTwo, int64_t* destination)
 {
-    if (result == NULL)
+    if (numberTwo > 0 && numberOne > INT64_MAX - numberTwo)
         return false;
-    else if (numberOne > INT64_MAX - numberTwo)
+    else if (numberTwo < 0 && numberOne < INT64_MIN - numberTwo)
         return false;
 
-    *result = numberOne + numberTwo;
+    *destination = numberOne + numberTwo;
     return true;
 }
 
@@ -275,6 +275,8 @@ static vector_result_t vector_realloc_capacity(
 {
     if (vector == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
+    else if (newCapacity < vector->capacity)
+        return VECTOR_INVALID_PARAMS_ERROR;
 
     vector_result_t validationResult = validate_capacity(newCapacity);
 
@@ -284,6 +286,7 @@ static vector_result_t vector_realloc_capacity(
     vector_element_t **newItems = NULL;
 
     newItems = (vector_element_t**) malloc(newCapacity * sizeof(vector_element_t*));
+
     if (newItems == NULL)
         return VECTOR_ALLOCATION_FAILURE;
 
@@ -306,14 +309,21 @@ static vector_result_t vector_realloc_capacity(
 static vector_result_t vector_grow(vector_t* vector) {
     int64_t newCapacity = 0;
     vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
+    vector_result_t validationResult = validate_capacity(newCapacity);
 
     if (growResult != VECTOR_SUCCESS)
         return growResult;
+    if (validationResult != VECTOR_SUCCESS)
+        return growResult;
+    else if (newCapacity <= vector->capacity)
+        return VECTOR_SIZE_LIMIT_REACHED;
 
     vector_result_t reallocResult = vector_realloc_capacity(vector, newCapacity);
 
     if (reallocResult != VECTOR_SUCCESS)
         return reallocResult;
+
+    return VECTOR_SUCCESS;
 }
 
 static int32_t default_compare(
@@ -358,12 +368,13 @@ static vector_result_t default_growing_strategy(int64_t const currentCapacity, i
 
     int64_t newCapacity = currentCapacity * 2;
 
-    if (newCapacity > INT64_MAX / sizeof(vector_element_t *)) 
-        return VECTOR_SIZE_LIMIT_REACHED;
-    else {
-        *newCapacityOut = newCapacity;
-        return VECTOR_SUCCESS;
-    }
+    vector_result_t validationResult = validate_capacity(newCapacity);
+
+    if (validationResult != VECTOR_SUCCESS)
+        return validationResult;
+
+    *newCapacityOut = newCapacity;
+    return VECTOR_SUCCESS;
 }
 
 static void vector_quicksort_range(
@@ -518,10 +529,10 @@ static vector_result_t default_print(
 
 static vector_result_t validate_capacity(int64_t capacity)
 {
-    if (capacity < 0)
+    if (capacity <= 0)
         return VECTOR_INVALID_PARAMS_ERROR;
 
-    if ((uint64_t)capacity > (uint64_t)(SIZE_MAX / sizeof(vector_element_t*)))
+    if ((uintmax_t)capacity > (uintmax_t)(SIZE_MAX / sizeof(vector_element_t*)))
         return VECTOR_SIZE_LIMIT_REACHED;
 
     return VECTOR_SUCCESS;
@@ -637,8 +648,6 @@ vector_result_t vector_resize(vector_t *vector, const int64_t capacity)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
-    else if (capacity <= 0)
-        return VECTOR_INVALID_PARAMS_ERROR;
     else if (capacity == vector->capacity)
         return VECTOR_SUCCESS;
 
@@ -922,12 +931,15 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     if (vectorOut == NULL || *vectorOut != NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
 
-    int64_t joinedCapacity = -1;
-    
+    int64_t joinedCapacity = 0;
+
     if (!safe_add_int64(vector1->capacity, vector2->capacity, &joinedCapacity))
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (joinedCapacity <= 0 || joinedCapacity > INT64_MAX / sizeof(vector_element_t*))
-        return VECTOR_SIZE_LIMIT_REACHED;
+
+    vector_result_t validationResult = validate_capacity(joinedCapacity);
+
+    if (validationResult != VECTOR_SUCCESS)
+        return validationResult;
 
     vector_t *joinVector = NULL;
     vector_result_t result = vector_create(
