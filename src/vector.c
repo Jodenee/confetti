@@ -566,7 +566,7 @@ vector_result_t vector_create(
         return VECTOR_ALLOCATION_FAILURE;
 
     vector->size = 0;
-    vector->capacity = capacity < 1 ? DEFAULT_VECTOR_CAPACITY : capacity;
+    vector->capacity = capacity;
     vector->items = (vector_element_t **)calloc(vector->capacity, sizeof(vector_element_t *));
     vector->compare = compare == NULL ? default_compare : compare;
     vector->sort = sort == NULL ? default_sort : sort;
