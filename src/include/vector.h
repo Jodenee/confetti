@@ -67,22 +67,32 @@ typedef enum vector_result vector_result_t;
 /**
  * @brief Calculates a new capacity when a vector becomes full.
  *
- * A custom growing strategy is called when an insertion operation needs
- * additional capacity.
+ * This callback is invoked when an insertion operation requires additional
+ * capacity. It is responsible for calculating and providing a proposed
+ * capacity greater than the vector's current capacity.
  *
- * The callback must write a valid capacity greater than currentCapacity
- * to newCapacityOut and return VECTOR_SUCCESS.
+ * The proposed capacity must be greater than zero and within the supported
+ * allocation limit. The vector validates the proposed capacity before
+ * attempting to reallocate its internal storage.
  *
- * The output parameter must point to an int64_t initialized to zero.
+ * The callback must write the proposed capacity to newCapacityOut before
+ * returning VECTOR_SUCCESS. It must not rely on the initial value of
+ * newCapacityOut.
  *
- * @param currentCapacity The vector's current capacity.
- * @param newCapacityOut Receives the proposed new capacity.
+ * @param currentCapacity The vector's current allocated capacity.
+ * @param newCapacityOut Receives the proposed new capacity. Must not be NULL.
  *
  * @return VECTOR_SUCCESS if a new capacity was calculated successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if the output parameter is invalid.
- * @return VECTOR_SIZE_LIMIT_REACHED if the capacity cannot be increased.
+ * @return VECTOR_INVALID_PARAMS_ERROR if the callback receives invalid
+ *         parameters.
+ * @return VECTOR_SIZE_LIMIT_REACHED if a valid capacity increase cannot
+ *         be provided.
+ * @return Any other non-success result returned by the callback.
  *
- * @note The vector validates the proposed capacity before reallocating.
+ * @note The proposed capacity must be greater than currentCapacity.
+ * @note The vector performs its own validation of the proposed capacity.
+ *
+ * @warning The callback must not modify the vector's internal storage.
  */
 typedef vector_result_t (*vector_growing_strategy_function_t)(
     const int64_t currentCapacity,
@@ -645,27 +655,6 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t *const vector1, vector_t *c
  * @note The vector's configured comparison callback determines whether
  *       two elements are considered equal.
  */
-CONFETTI_EXPORT vector_result_t vector_includes(vector_t *const vector, void *const value, const size_t size);
-
-/**
- * @brief Checks whether a vector contains a matching element.
- *
- * Searches the vector for an element whose size matches the supplied size
- * and whose contents are considered equal by the vector's comparison
- * callback.
- *
- * @param vector Vector to search.
- * @param value Pointer to the data to search for. May be NULL.
- * @param size Size of the supplied data in bytes. Must be greater than zero.
- *
- * @return VECTOR_SUCCESS if a matching element is found.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ELEMENT_NOT_FOUND_ERROR if no matching element is found.
- *
- * @note The vector's configured comparison callback determines whether
- *       two elements are considered equal.
- */
 CONFETTI_EXPORT vector_result_t vector_includes(
     vector_t *const vector,
     void *const value,
@@ -832,22 +821,28 @@ CONFETTI_EXPORT vector_result_t vector_iterator_create(vector_t *const vector, v
 /**
  * @brief Advances an iterator to the next element.
  *
- * Advances the iterator's index and updates its current element pointer.
+ * Advances the iterator's index and updates its current element pointer
+ * to reference the next element in the associated vector.
  *
- * When the iterator reaches the end of the vector, its current element
- * pointer is set to NULL and VECTOR_INDEX_OUT_OF_RANGE_ERROR is returned.
+ * If the vector is empty or the iterator has reached its final element,
+ * the current element pointer is set to NULL and
+ * VECTOR_INDEX_OUT_OF_RANGE_ERROR is returned.
  *
- * The iterator does not automatically rewind when the end is reached.
- * Call vector_iterator_rewind() to restart iteration.
+ * When the iterator is exhausted, its index remains unchanged. Repeated
+ * calls continue returning VECTOR_INDEX_OUT_OF_RANGE_ERROR until the
+ * iterator is rewound.
  *
- * @param iterator Iterator to advance.
+ * @param iterator Iterator to advance. Must not be NULL and must reference
+ *                 a valid vector.
  *
- * @return VECTOR_SUCCESS if the iterator advanced successfully.
+ * @return VECTOR_SUCCESS if the iterator advances successfully.
  * @return VECTOR_INVALID_PARAMS_ERROR if iterator is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if no next element exists.
+ * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if the vector is empty or
+ *         the iterator has reached its final element.
  *
- * @note Repeated calls after reaching the end continue to return
- *       VECTOR_INDEX_OUT_OF_RANGE_ERROR until the iterator is rewound.
+ * @note The iterator must remain associated with a valid vector throughout
+ *       its lifetime.
+ * @note Call vector_iterator_rewind() to restart iteration.
  */
 CONFETTI_EXPORT vector_result_t vector_iterator_next(vector_iterator_t *const iterator);
 

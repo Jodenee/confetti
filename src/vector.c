@@ -1193,7 +1193,10 @@ vector_result_t vector_iterator_next(vector_iterator_t *iterator)
     else if (iterator->vector->size == 0)
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
     else if (iterator->index >= iterator->vector->size - 1)
+    {
+        iterator->element = NULL;
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
+    }
 
     iterator->index++;
     iterator->element = iterator->vector->items[iterator->index];
