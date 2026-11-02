@@ -765,7 +765,7 @@ CONFETTI_EXPORT vector_result_t vector_sort(vector_t *const vector, const bool a
 /**
  * @brief Swaps the positions of two elements in a vector.
  *
- * Exchanges the element pointers stored at index1 and index2.
+ * Exchanges the element pointers stored at `index1` and `index2`.
  *
  * The elements' data, sizes and allocations are not modified. Only their
  * positions within the vector are exchanged.
@@ -788,7 +788,7 @@ CONFETTI_EXPORT vector_result_t vector_swap(vector_t *const vector, const int64_
  * @brief Frees a vector element and its associated data.
  *
  * Releases the memory allocated for the element's stored data and the
- * vector_element_t structure itself.
+ * `vector_element_t` structure itself.
  *
  * After successful deallocation, the caller's element pointer is set to `NULL`.
  *
