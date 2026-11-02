@@ -174,34 +174,35 @@ typedef struct vector_element
 /**
  * @brief Represents a dynamic vector data structure.
  *
- * This structure maintains a dynamic array of pointers to vector elements,
- * along with metadata for managing size, capacity, and custom behavior.
+ * Maintains a dynamically allocated array of elements and the callbacks
+ * used to customise vector behaviour.
+ *
+ * @warning The fields of this structure are exposed publicly, but should
+ *          not be modified directly. Use the library's public functions
+ *          to modify the vector and preserve its internal invariants.
  */
 typedef struct vector
 {
-    int64_t size;                                       /* Current number of elements in the vector. */
-    int64_t capacity;                                   /* Total allocated capacity for elements. */
-    vector_element_t **items;                           /* Array of pointers to vector elements. */
-    vector_compare_function_t compare;                  /* function for comparing elements. */
-    vector_sorting_function_t sort;                     /* function for ordering elements. */
-    vector_print_function_t print;                      /* function for displaying elements with vector_print. */
-    vector_growing_strategy_function_t growingStrategy; /* function for calculating the vector's new capacity when full. */
+    int64_t size; /**< Number of active elements currently stored. */
+    int64_t capacity; /**< Total number of element slots allocated. */
+    vector_element_t **items; /**< Internal array containing pointers to active elements. */
+    vector_compare_function_t compare; /**< Callback used to compare elements. */
+    vector_sorting_function_t sort; /**< Callback used to sort elements. */
+    vector_print_function_t print; /**< Callback used by vector_print(). */
+    vector_growing_strategy_function_t growingStrategy; /**< Callback used to calculate increased capacity. */
 } vector_t;
 
 /**
  * @brief Represents an iterator for a vector.
  *
- * This structure is used to facilitate iteration over the elements of a
- * vector. It maintains the necessary information to traverse the
- * vector.
+ * Maintains the state required to traverse a vector.
  *
- * @param vector A pointer to the vector being iterated over.
- * @param index The current index.
- * @param element A pointer to the current element.
+ * The iterator does not own the associated vector. The vector must
+ * remain valid throughout the iterator's lifetime.
  *
- * @warning Please do not manually free anything within this structure as
- * they are the internal values kept by the vector. If you wish
- * to deallocate memory from this structure please use `vector_iterator_free` to safely do so.
+ * @warning Do not manually modify the iterator's fields or free its
+ *          associated element. Use the provided iterator functions
+ *          to manage its state and lifetime.
  */
 typedef struct vector_iterator
 {
@@ -268,6 +269,13 @@ typedef enum vector_result
      */
     VECTOR_ALLOCATION_FAILURE = -5,
 
+    /**
+     * @brief Error: The vector has reached its maximum supported capacity.
+     *
+     * This error occurs when a requested capacity exceeds the maximum
+     * capacity supported by the library or when a valid capacity increase
+     * cannot be provided.
+     */
     VECTOR_SIZE_LIMIT_REACHED = -6,
 } vector_result_t;
 

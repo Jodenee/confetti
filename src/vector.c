@@ -321,7 +321,7 @@ static vector_result_t vector_realloc_capacity(
 
 static vector_result_t vector_grow(vector_t *vector)
 {
-    int64_t newCapacity = -1;
+    int64_t newCapacity = 0;
     vector_result_t growResult = vector->growingStrategy(vector->capacity, &newCapacity);
     vector_result_t validationResult = validate_capacity(newCapacity);
 
@@ -1190,8 +1190,10 @@ vector_result_t vector_iterator_next(vector_iterator_t *iterator)
 {
     if (iterator == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (iterator->vector->size == 0)
+    else if (iterator->vector->size == 0) {
+        iterator->element = NULL;
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
+    }
     else if (iterator->index >= iterator->vector->size - 1)
     {
         iterator->element = NULL;
