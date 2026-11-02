@@ -167,8 +167,8 @@ typedef vector_result_t (*vector_print_function_t)(
  */
 typedef struct vector_element
 {
-    size_t size; /* Size of the value in bytes. */
-    void *value; /* Pointer to the data stored in the vector element. */
+    size_t size; /*< Size of the value in bytes. */
+    void *value; /*< Pointer to the data stored in the vector element. */
 } vector_element_t;
 
 /**
@@ -294,7 +294,7 @@ typedef enum vector_result
  * replaced with its corresponding default implementation.
  *
  * @param capacity Initial capacity. Must be greater than zero.
- *        Use DEFAULT_VECTOR_CAPACITY to use the library's default value.
+ *        Use `DEFAULT_VECTOR_CAPACITY` to use the library's default value.
  * @param grow Custom capacity growth strategy, or `NULL` for the default.
  * @param compare Custom element comparison function, or `NULL` for the default.
  * @param sort Custom sorting function, or `NULL` for the default.
@@ -464,7 +464,7 @@ CONFETTI_EXPORT vector_result_t vector_insert(vector_t *const vector, const int6
  * @brief Retrieves an independent copy of an element.
  *
  * Creates a separate copy of the element stored at the specified index
- * and assigns it to elementOut.
+ * and assigns it to `elementOut`.
  *
  * The returned element is not owned by the vector. The caller is responsible
  * for releasing it using `vector_element_free()`.
@@ -476,7 +476,7 @@ CONFETTI_EXPORT vector_result_t vector_insert(vector_t *const vector, const int6
  * @return `VECTOR_SUCCESS` if the element was retrieved successfully.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if elementOut is `NULL` or *elementOut
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `elementOut` is `NULL` or `*elementOut`
  *         is not `NULL`.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  *
@@ -533,7 +533,7 @@ CONFETTI_EXPORT vector_result_t vector_remove(vector_t *const vector, const int6
  * @brief Removes an element and returns an independent copy of it.
  *
  * Creates a copy of the element at the specified index, removes and frees
- * the original element, and assigns the copy to elementOut.
+ * the original element, and assigns the copy to `elementOut`.
  *
  * The returned element is independently allocated and is owned by the caller.
  * It must be released using `vector_element_free()`.
@@ -545,7 +545,7 @@ CONFETTI_EXPORT vector_result_t vector_remove(vector_t *const vector, const int6
  * @return `VECTOR_SUCCESS` if the element was removed successfully.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if elementOut is `NULL` or *elementOut
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `elementOut` is `NULL` or `*elementOut`
  *         is not `NULL`.
  * @return `VECTOR_ALLOCATION_FAILURE` if cloning the element fails.
  *
@@ -689,11 +689,11 @@ CONFETTI_EXPORT vector_result_t vector_includes(
  *
  * @return `VECTOR_SUCCESS` if a matching element is found.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if indexOut is `NULL`, `startIndex` is
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL`, `startIndex` is
  *         outside the permitted range, or size is zero.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
- * @note On failure, indexOut is set to -1 when the output pointer is valid.
+ * @note On failure, `indexOut` is set to -1 when the output pointer is valid.
  */
 CONFETTI_EXPORT vector_result_t vector_find_first(
     vector_t *const vector,
@@ -724,11 +724,11 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  *
  * @return `VECTOR_SUCCESS` if a matching element is found.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if indexOut is `NULL`, `startIndex` is
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL`, `startIndex` is
  *         outside the permitted range, or size is zero.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
- * @note On failure, indexOut is set to -1 when the output pointer is valid.
+ * @note On failure, `indexOut` is set to -1 when the output pointer is valid.
  */
 CONFETTI_EXPORT vector_result_t vector_find_last(
     vector_t *const vector,
