@@ -54,7 +54,7 @@ If not, see <https://www.gnu.org/licenses/>.
  *
  * This constant provides the recommended initial capacity for a new vector.
  *
- * @note Passing this value to vector_create() explicitly is required when
+ * @note Passing this value to `vector_create()` explicitly is required when
  *       the default capacity is desired.
  */
 #define DEFAULT_VECTOR_CAPACITY ((int64_t)8)
@@ -75,17 +75,17 @@ typedef enum vector_result vector_result_t;
  * allocation limit. The vector validates the proposed capacity before
  * attempting to reallocate its internal storage.
  *
- * The callback must write the proposed capacity to newCapacityOut before
- * returning VECTOR_SUCCESS. It must not rely on the initial value of
- * newCapacityOut.
+ * The callback must write the proposed capacity to `newCapacityOut` before
+ * returning `VECTOR_SUCCESS`. It must not rely on the initial value of
+ * `newCapacityOut`.
  *
  * @param currentCapacity The vector's current allocated capacity.
- * @param newCapacityOut Receives the proposed new capacity. Must not be NULL.
+ * @param newCapacityOut Receives the proposed new capacity. Must not be `NULL`.
  *
- * @return VECTOR_SUCCESS if a new capacity was calculated successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if the callback receives invalid
+ * @return `VECTOR_SUCCESS` if a new capacity was calculated successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if the callback receives invalid
  *         parameters.
- * @return VECTOR_SIZE_LIMIT_REACHED if a valid capacity increase cannot
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if a valid capacity increase cannot
  *         be provided.
  * @return Any other non-success result returned by the callback.
  *
@@ -142,11 +142,11 @@ typedef vector_result_t (*vector_sorting_function_t)(vector_t *const vector, con
 /**
  * @brief Prints one vector element to a stream.
  *
- * @param value Pointer to the element's data. May be NULL.
+ * @param value Pointer to the element's data. May be `NULL`.
  * @param size Size of the element in bytes.
  * @param stream Stream to which the element should be printed.
  *
- * @return VECTOR_SUCCESS if printing succeeds.
+ * @return `VECTOR_SUCCESS` if printing succeeds.
  *
  * @note The callback is responsible for deciding how the element's
  *       contents should be represented.
@@ -183,12 +183,12 @@ typedef struct vector_element
  */
 typedef struct vector
 {
-    int64_t size; /**< Number of active elements currently stored. */
-    int64_t capacity; /**< Total number of element slots allocated. */
-    vector_element_t **items; /**< Internal array containing pointers to active elements. */
-    vector_compare_function_t compare; /**< Callback used to compare elements. */
-    vector_sorting_function_t sort; /**< Callback used to sort elements. */
-    vector_print_function_t print; /**< Callback used by vector_print(). */
+    int64_t size;                                       /**< Number of active elements currently stored. */
+    int64_t capacity;                                   /**< Total number of element slots allocated. */
+    vector_element_t **items;                           /**< Internal array containing pointers to active elements. */
+    vector_compare_function_t compare;                  /**< Callback used to compare elements. */
+    vector_sorting_function_t sort;                     /**< Callback used to sort elements. */
+    vector_print_function_t print;                      /**< Callback used by `vector_print()`. */
     vector_growing_strategy_function_t growingStrategy; /**< Callback used to calculate increased capacity. */
 } vector_t;
 
@@ -290,23 +290,23 @@ typedef enum vector_result
  * its size to zero.
  *
  * Custom callbacks can be provided to control capacity growth, element
- * comparison, sorting and printing. Any callback supplied as NULL is
+ * comparison, sorting and printing. Any callback supplied as `NULL` is
  * replaced with its corresponding default implementation.
  *
  * @param capacity Initial capacity. Must be greater than zero.
  *        Use DEFAULT_VECTOR_CAPACITY to use the library's default value.
- * @param grow Custom capacity growth strategy, or NULL for the default.
- * @param compare Custom element comparison function, or NULL for the default.
- * @param sort Custom sorting function, or NULL for the default.
- * @param print Custom element printing function, or NULL for the default.
- * @param vectorOut Receives the newly created vector. Must point to NULL.
+ * @param grow Custom capacity growth strategy, or `NULL` for the default.
+ * @param compare Custom element comparison function, or `NULL` for the default.
+ * @param sort Custom sorting function, or `NULL` for the default.
+ * @param print Custom element printing function, or `NULL` for the default.
+ * @param vectorOut Receives the newly created vector. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the vector was created successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if vectorOut is NULL, already contains
+ * @return `VECTOR_SUCCESS` if the vector was created successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `vectorOut` is `NULL`, already contains
  *         a vector, or capacity is invalid.
- * @return VECTOR_SIZE_LIMIT_REACHED if the requested capacity exceeds
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the requested capacity exceeds
  *         the supported allocation limit.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
 CONFETTI_EXPORT vector_result_t vector_create(
     const int64_t capacity,
@@ -322,12 +322,12 @@ CONFETTI_EXPORT vector_result_t vector_create(
  * Releases the memory allocated for every active element, the internal
  * element pointer array and the vector itself.
  *
- * After successful deallocation, the caller's vector pointer is set to NULL.
+ * After successful deallocation, the caller's vector pointer is set to `NULL`.
  *
  * @param vectorOut Pointer to the vector pointer to be freed.
  *
- * @return VECTOR_SUCCESS if the vector was successfully freed.
- * @return VECTOR_NULL_ERROR if vectorOut or *vectorOut is NULL.
+ * @return `VECTOR_SUCCESS` if the vector was successfully freed.
+ * @return `VECTOR_NULL_ERROR` if `vectorOut` or `*vectorOut` is `NULL`.
  *
  * @note This operation permanently destroys the vector and all elements
  *       stored within it.
@@ -341,16 +341,16 @@ CONFETTI_EXPORT vector_result_t vector_free(vector_t **vectorOut);
  * The elements are displayed in their current order, followed by the
  * address of the vector itself.
  *
- * If stream is NULL, stdout is used as the destination stream.
+ * If stream is `NULL`, stdout is used as the destination stream.
  *
  * The default printing callback displays each element's data pointer
  * rather than interpreting or printing its stored bytes.
  *
  * @param vector Vector whose contents are to be printed.
- * @param stream Destination output stream, or NULL to use stdout.
+ * @param stream Destination output stream, or `NULL` to use stdout.
  *
- * @return VECTOR_SUCCESS if the printing operation completes successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
+ * @return `VECTOR_SUCCESS` if the printing operation completes successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  *
  * @note Errors returned by the configured element-printing callback are
  *       propagated to the caller.
@@ -370,14 +370,14 @@ CONFETTI_EXPORT vector_result_t vector_print(vector_t *const vector, FILE *strea
  * @param capacity Requested capacity. Must not be smaller than the
  *                 current capacity.
  *
- * @return VECTOR_SUCCESS if the capacity was successfully updated or
+ * @return `VECTOR_SUCCESS` if the capacity was successfully updated or
  *         already equals the requested capacity.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if capacity is smaller than the
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if capacity is smaller than the
  *         current capacity or is otherwise invalid.
- * @return VECTOR_SIZE_LIMIT_REACHED if the requested capacity exceeds
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the requested capacity exceeds
  *         the supported allocation limit.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
 CONFETTI_EXPORT vector_result_t vector_resize(vector_t *const vector, const int64_t capacity);
 
@@ -391,14 +391,14 @@ CONFETTI_EXPORT vector_result_t vector_resize(vector_t *const vector, const int6
  * the element is inserted.
  *
  * @param vector Vector into which the element is to be inserted.
- * @param value Pointer to the data to be copied. May be NULL.
+ * @param value Pointer to the data to be copied. May be `NULL`.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  *
- * @return VECTOR_SUCCESS if the element was inserted successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
- * @return VECTOR_SIZE_LIMIT_REACHED if the vector cannot increase its capacity.
+ * @return `VECTOR_SUCCESS` if the element was inserted successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -415,14 +415,14 @@ CONFETTI_EXPORT vector_result_t vector_prepend(vector_t *const vector, void *con
  * the element is inserted.
  *
  * @param vector Vector to which the element is to be appended.
- * @param value Pointer to the data to be copied. May be NULL.
+ * @param value Pointer to the data to be copied. May be `NULL`.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  *
- * @return VECTOR_SUCCESS if the element was appended successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
- * @return VECTOR_SIZE_LIMIT_REACHED if the vector cannot increase its capacity.
+ * @return `VECTOR_SUCCESS` if the element was appended successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -444,16 +444,16 @@ CONFETTI_EXPORT vector_result_t vector_append(vector_t *const vector, void *cons
  *
  * @param vector Vector into which the element is to be inserted.
  * @param index Position at which the element is to be inserted.
- * @param value Pointer to the data to be copied. May be NULL.
+ * @param value Pointer to the data to be copied. May be `NULL`.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  *
- * @return VECTOR_SUCCESS if the element was inserted successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if index is smaller than zero
+ * @return `VECTOR_SUCCESS` if the element was inserted successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is smaller than zero
  *         or greater than the vector's current size.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
- * @return VECTOR_SIZE_LIMIT_REACHED if the vector cannot increase its capacity.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -467,18 +467,18 @@ CONFETTI_EXPORT vector_result_t vector_insert(vector_t *const vector, const int6
  * and assigns it to elementOut.
  *
  * The returned element is not owned by the vector. The caller is responsible
- * for releasing it using vector_element_free().
+ * for releasing it using `vector_element_free()`.
  *
  * @param vector Vector from which the element is to be retrieved.
  * @param index Index of the element to retrieve.
- * @param elementOut Receives the cloned element. Must point to NULL.
+ * @param elementOut Receives the cloned element. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the element was retrieved successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if index is outside the valid range.
- * @return VECTOR_INVALID_PARAMS_ERROR if elementOut is NULL or *elementOut
- *         is not NULL.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_SUCCESS` if the element was retrieved successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if elementOut is `NULL` or *elementOut
+ *         is not `NULL`.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  *
  * @note Modifying or freeing the returned element does not modify the
  *       element stored in the original vector.
@@ -496,14 +496,14 @@ CONFETTI_EXPORT vector_result_t vector_get(vector_t *vector, const int64_t index
  *
  * @param vector Vector containing the element to be updated.
  * @param index Index of the element to update.
- * @param value Pointer to the replacement data. May be NULL.
+ * @param value Pointer to the replacement data. May be `NULL`.
  * @param size Size of the replacement data in bytes. Must be greater than zero.
  *
- * @return VECTOR_SUCCESS if the element was updated successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if index is outside the valid range.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_SUCCESS` if the element was updated successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -521,9 +521,9 @@ CONFETTI_EXPORT vector_result_t vector_set(vector_t *const vector, const int64_t
  * @param vector Vector from which the element is to be removed.
  * @param index Index of the element to remove.
  *
- * @return VECTOR_SUCCESS if the element was removed successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if index is outside the valid range.
+ * @return `VECTOR_SUCCESS` if the element was removed successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
  *
  * @note The removed element and its associated data are deallocated.
  */
@@ -536,18 +536,18 @@ CONFETTI_EXPORT vector_result_t vector_remove(vector_t *const vector, const int6
  * the original element, and assigns the copy to elementOut.
  *
  * The returned element is independently allocated and is owned by the caller.
- * It must be released using vector_element_free().
+ * It must be released using `vector_element_free()`.
  *
  * @param vector Vector from which the element is to be removed.
  * @param index Index of the element to remove.
- * @param elementOut Receives the cloned element. Must point to NULL.
+ * @param elementOut Receives the cloned element. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the element was removed successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if index is outside the valid range.
- * @return VECTOR_INVALID_PARAMS_ERROR if elementOut is NULL or *elementOut
- *         is not NULL.
- * @return VECTOR_ALLOCATION_FAILURE if cloning the element fails.
+ * @return `VECTOR_SUCCESS` if the element was removed successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if index is outside the valid range.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if elementOut is `NULL` or *elementOut
+ *         is not `NULL`.
+ * @return `VECTOR_ALLOCATION_FAILURE` if cloning the element fails.
  *
  * @note The vector's capacity remains unchanged.
  */
@@ -563,8 +563,8 @@ CONFETTI_EXPORT vector_result_t vector_pop(vector_t *const vector, const int64_t
  *
  * @param vector Vector whose element order is to be reversed.
  *
- * @return VECTOR_SUCCESS if the vector was reversed successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
+ * @return `VECTOR_SUCCESS` if the vector was reversed successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  *
  * @note Vectors containing zero or one element are left unchanged.
  */
@@ -580,20 +580,20 @@ CONFETTI_EXPORT vector_result_t vector_reverse(vector_t *const vector);
  * vector does not share element allocations with the original vector.
  *
  * @param vector Vector to be cloned.
- * @param vectorOut Receives the newly created vector. Must point to NULL.
+ * @param vectorOut Receives the newly created vector. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the vector was cloned successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if vectorOut is NULL or *vectorOut
- *         is not NULL.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
- * @return VECTOR_SIZE_LIMIT_REACHED if the vector cannot be created within
+ * @return `VECTOR_SUCCESS` if the vector was cloned successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `vectorOut` is `NULL` or `*vectorOut`
+ *         is not `NULL`.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot be created within
  *         the supported capacity limits.
  *
  * @note The cloned vector inherits the callback configuration of the
  *       original vector.
  * @note The caller is responsible for releasing the cloned vector using
- *       vector_free().
+ *       `vector_free()`.
  */
 CONFETTI_EXPORT vector_result_t vector_clone(vector_t *const vector, vector_t **vectorOut);
 
@@ -608,8 +608,8 @@ CONFETTI_EXPORT vector_result_t vector_clone(vector_t *const vector, vector_t **
  *
  * @param vector Vector to be cleared.
  *
- * @return VECTOR_SUCCESS if the vector was cleared successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
+ * @return `VECTOR_SUCCESS` if the vector was cleared successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  *
  * @note This operation does not deallocate the vector or its internal
  *       element pointer array.
@@ -629,15 +629,15 @@ CONFETTI_EXPORT vector_result_t vector_clear(vector_t *const vector);
  *
  * @param vector1 First vector whose elements are to be copied.
  * @param vector2 Second vector whose elements are to be copied.
- * @param vectorOut Receives the newly created vector. Must point to NULL.
+ * @param vectorOut Receives the newly created vector. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the vectors were joined successfully.
- * @return VECTOR_NULL_ERROR if either source vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if vectorOut is NULL, *vectorOut
- *         is not NULL, or the combined capacity cannot be represented.
- * @return VECTOR_SIZE_LIMIT_REACHED if the combined capacity exceeds the
+ * @return `VECTOR_SUCCESS` if the vectors were joined successfully.
+ * @return `VECTOR_NULL_ERROR` if either source vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `vectorOut` is `NULL`, `*vectorOut`
+ *         is not `NULL`, or the combined capacity cannot be represented.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the combined capacity exceeds the
  *         supported allocation limit.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  *
  * @note The source vectors and their elements remain unchanged.
  * @note The resulting vector is independent of both source vectors.
@@ -652,13 +652,13 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t *const vector1, vector_t *c
  * callback.
  *
  * @param vector Vector to search.
- * @param value Pointer to the data to search for. May be NULL.
+ * @param value Pointer to the data to search for. May be `NULL`.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  *
- * @return VECTOR_SUCCESS if a matching element is found.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if size is zero.
- * @return VECTOR_ELEMENT_NOT_FOUND_ERROR if no matching element is found.
+ * @return `VECTOR_SUCCESS` if a matching element is found.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
+ * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
  * @note The vector's configured comparison callback determines whether
  *       two elements are considered equal.
@@ -671,7 +671,7 @@ CONFETTI_EXPORT vector_result_t vector_includes(
 /**
  * @brief Finds the first matching element in a vector.
  *
- * Searches forwards through the vector, beginning at startIndex, and
+ * Searches forwards through the vector, beginning at `startIndex`, and
  * returns the index of the first matching element encountered.
  *
  * An element is considered a match when its size matches the supplied
@@ -682,16 +682,16 @@ CONFETTI_EXPORT vector_result_t vector_includes(
  * @param startIndex Index at which the forward search begins. Must be
  *                   greater than or equal to zero and less than the
  *                   vector's size.
- * @param value Pointer to the data to search for. May be NULL if supported
+ * @param value Pointer to the data to search for. May be `NULL` if supported
  *              by the vector's comparison callback.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  * @param indexOut Receives the index of the first matching element.
  *
- * @return VECTOR_SUCCESS if a matching element is found.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if indexOut is NULL, startIndex is
+ * @return `VECTOR_SUCCESS` if a matching element is found.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if indexOut is `NULL`, `startIndex` is
  *         outside the permitted range, or size is zero.
- * @return VECTOR_ELEMENT_NOT_FOUND_ERROR if no matching element is found.
+ * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
  * @note On failure, indexOut is set to -1 when the output pointer is valid.
  */
@@ -705,7 +705,7 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
 /**
  * @brief Finds the last matching element in a vector.
  *
- * Searches backwards through the vector, beginning at startIndex, and
+ * Searches backwards through the vector, beginning at `startIndex`, and
  * returns the index of the first matching element encountered during
  * the reverse search.
  *
@@ -717,16 +717,16 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  * @param startIndex Index at which the reverse search begins. Must be
  *                   greater than or equal to zero and less than the
  *                   vector's size.
- * @param value Pointer to the data to search for. May be NULL if supported
+ * @param value Pointer to the data to search for. May be `NULL` if supported
  *              by the vector's comparison callback.
  * @param size Size of the supplied data in bytes. Must be greater than zero.
  * @param indexOut Receives the index of the last matching element.
  *
- * @return VECTOR_SUCCESS if a matching element is found.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if indexOut is NULL, startIndex is
+ * @return `VECTOR_SUCCESS` if a matching element is found.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if indexOut is `NULL`, `startIndex` is
  *         outside the permitted range, or size is zero.
- * @return VECTOR_ELEMENT_NOT_FOUND_ERROR if no matching element is found.
+ * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
  * @note On failure, indexOut is set to -1 when the output pointer is valid.
  */
@@ -750,12 +750,12 @@ CONFETTI_EXPORT vector_result_t vector_find_last(
  * @param ascending True to sort in ascending order, or false to sort in
  *                  descending order.
  *
- * @return VECTOR_SUCCESS if the sorting operation completes successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
+ * @return `VECTOR_SUCCESS` if the sorting operation completes successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
  * @return Any non-success result returned by the configured sorting callback.
  *
  * @note When the default sorting callback is used, vectors containing zero
- *       or one element are left unchanged and return VECTOR_SUCCESS.
+ *       or one element are left unchanged and return `VECTOR_SUCCESS`.
  *
  * @warning The errors returned by this function depend on the configured
  *          sorting callback.
@@ -774,9 +774,9 @@ CONFETTI_EXPORT vector_result_t vector_sort(vector_t *const vector, const bool a
  * @param index1 Index of the first element.
  * @param index2 Index of the second element.
  *
- * @return VECTOR_SUCCESS if the elements were swapped successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if either index is outside
+ * @return `VECTOR_SUCCESS` if the elements were swapped successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if either index is outside
  *         the valid range.
  *
  * @note If both indices are equal, the operation succeeds without making
@@ -790,15 +790,15 @@ CONFETTI_EXPORT vector_result_t vector_swap(vector_t *const vector, const int64_
  * Releases the memory allocated for the element's stored data and the
  * vector_element_t structure itself.
  *
- * After successful deallocation, the caller's element pointer is set to NULL.
+ * After successful deallocation, the caller's element pointer is set to `NULL`.
  *
  * @param element Pointer to the element pointer to be freed.
  *
- * @return VECTOR_SUCCESS if the element was freed successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if element or *element is NULL.
+ * @return `VECTOR_SUCCESS` if the element was freed successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if element or *element is `NULL`.
  *
  * @note This function should be used to release elements returned by
- *       vector_get() and vector_pop().
+ *       `vector_get()` and `vector_pop()`.
  * @note Do not use this function to free an element that is still owned
  *       by a vector.
  */
@@ -810,16 +810,16 @@ CONFETTI_EXPORT vector_result_t vector_element_free(vector_element_t **element);
  * Allocates and initialises an iterator associated with the supplied vector.
  *
  * The iterator starts before the first element, with its index set to -1
- * and its current element pointer set to NULL.
+ * and its current element pointer set to `NULL`.
  *
  * @param vector Vector to be traversed.
- * @param iteratorOut Receives the newly created iterator. Must point to NULL.
+ * @param iteratorOut Receives the newly created iterator. Must point to `NULL`.
  *
- * @return VECTOR_SUCCESS if the iterator was created successfully.
- * @return VECTOR_NULL_ERROR if vector is NULL.
- * @return VECTOR_INVALID_PARAMS_ERROR if iteratorOut is NULL or *iteratorOut
- *         is not NULL.
- * @return VECTOR_ALLOCATION_FAILURE if memory allocation fails.
+ * @return `VECTOR_SUCCESS` if the iterator was created successfully.
+ * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if iteratorOut is `NULL` or *iteratorOut
+ *         is not `NULL`.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  *
  * @note The iterator does not own the vector. The vector must remain valid
  *       while the iterator is in use.
@@ -833,39 +833,40 @@ CONFETTI_EXPORT vector_result_t vector_iterator_create(vector_t *const vector, v
  * to reference the next element in the associated vector.
  *
  * If the vector is empty or the iterator has reached its final element,
- * the current element pointer is set to NULL and
- * VECTOR_INDEX_OUT_OF_RANGE_ERROR is returned.
+ * the current element pointer is set to `NULL` and
+ * `VECTOR_INDEX_OUT_OF_RANGE_ERROR` is returned.
  *
- * When the iterator is exhausted, its index remains unchanged. Repeated
- * calls continue returning VECTOR_INDEX_OUT_OF_RANGE_ERROR until the
- * iterator is rewound.
+ * When the iterator is exhausted, its index remains unchanged.
+ * Repeated calls continue returning `VECTOR_INDEX_OUT_OF_RANGE_ERROR`
+ * while the vector remains unchanged. Call `vector_iterator_rewind()`
+ * to restart iteration.
  *
- * @param iterator Iterator to advance. Must not be NULL and must reference
+ * @param iterator Iterator to advance. Must not be `NULL` and must reference
  *                 a valid vector.
  *
- * @return VECTOR_SUCCESS if the iterator advances successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if iterator is NULL.
- * @return VECTOR_INDEX_OUT_OF_RANGE_ERROR if the vector is empty or
+ * @return `VECTOR_SUCCESS` if the iterator advances successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if iterator is `NULL`.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if the vector is empty or
  *         the iterator has reached its final element.
  *
  * @note The iterator must remain associated with a valid vector throughout
  *       its lifetime.
- * @note Call vector_iterator_rewind() to restart iteration.
+ * @note Call `vector_iterator_rewind()` to restart iteration.
  */
 CONFETTI_EXPORT vector_result_t vector_iterator_next(vector_iterator_t *const iterator);
 
 /**
  * @brief Resets an iterator to its initial state.
  *
- * Sets the iterator's index to -1 and its current element pointer to NULL.
+ * Sets the iterator's index to -1 and its current element pointer to `NULL`.
  *
- * The next call to vector_iterator_next() advances the iterator to the
+ * The next call to `vector_iterator_next()` advances the iterator to the
  * first element of the associated vector.
  *
  * @param iterator Iterator to reset.
  *
- * @return VECTOR_SUCCESS if the iterator was reset successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if iterator is NULL.
+ * @return `VECTOR_SUCCESS` if the iterator was reset successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if iterator is `NULL`.
  */
 CONFETTI_EXPORT vector_result_t vector_iterator_rewind(vector_iterator_t *const iterator);
 
@@ -873,14 +874,14 @@ CONFETTI_EXPORT vector_result_t vector_iterator_rewind(vector_iterator_t *const 
  * @brief Frees an iterator.
  *
  * Releases the memory allocated for the iterator and sets the caller's
- * iterator pointer to NULL.
+ * iterator pointer to `NULL`.
  *
  * The vector associated with the iterator is not freed or modified.
  *
  * @param iterator Pointer to the iterator pointer to be freed.
  *
- * @return VECTOR_SUCCESS if the iterator was freed successfully.
- * @return VECTOR_INVALID_PARAMS_ERROR if iterator or *iterator is NULL.
+ * @return `VECTOR_SUCCESS` if the iterator was freed successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if iterator or *iterator is `NULL`.
  *
  * @note The associated vector remains valid after the iterator is freed.
  */
