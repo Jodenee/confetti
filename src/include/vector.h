@@ -167,8 +167,8 @@ typedef vector_result_t (*vector_print_function_t)(
  */
 typedef struct vector_element
 {
-    size_t size; /*< Size of the value in bytes. */
-    void *value; /*< Pointer to the data stored in the vector element. */
+    size_t size; /**< Size of the value in bytes. */
+    void *value; /**< Pointer to the data stored in the vector element. */
 } vector_element_t;
 
 /**
