@@ -206,9 +206,9 @@ typedef struct vector
  */
 typedef struct vector_iterator
 {
-    vector_t *vector;          /* The vector being iterated through. */
-    int64_t index;             /* The index of the current iteration. */
-    vector_element_t *element; /* The element of the current iteration. */
+    vector_t *vector;          /**< Non-owning pointer to the vector being iterated through. */
+    int64_t index;             /**< Index of the current iteration. */
+    vector_element_t *element; /**< Pointer to the current element. */
 } vector_iterator_t;
 
 #pragma endregion
@@ -249,7 +249,7 @@ typedef enum vector_result
      * @brief Error: Vector is null.
      *
      * This error occurs when an operation is attempted on a vector
-     * that has not been initialized (i.e., it is null).
+     * that has not been initialised (i.e., it is null).
      */
     VECTOR_NULL_ERROR = -3,
 
@@ -284,9 +284,9 @@ typedef enum vector_result
 #pragma region Public Functions
 
 /**
- * @brief Creates and initializes a new vector.
+ * @brief Creates and initialises a new vector.
  *
- * Allocates a vector with the requested initial capacity and initializes
+ * Allocates a vector with the requested initial capacity and initialises
  * its size to zero.
  *
  * Custom callbacks can be provided to control capacity growth, element
