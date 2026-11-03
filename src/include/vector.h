@@ -743,8 +743,6 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if `startIndex` is outside the
  *         permitted range.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
- * @return Any non-success result returned by the configured
- *         capacity-growing callback.
  *
  * @note On failure, `indexOut` is set to -1 when the output pointer is valid.
  */
