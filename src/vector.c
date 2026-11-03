@@ -235,7 +235,7 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
     element->value = valueCopy;
     element->size = size;
 
-    memcpy(element->value, value, size);
+    memcpy(element->value, valueCopy, size);
 
     return VECTOR_SUCCESS;
 }
