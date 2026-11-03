@@ -1061,7 +1061,9 @@ vector_result_t vector_find_first(
 {
     if (vector == NULL)
     {
-        *indexOut = -1;
+        if (indexOut != NULL)
+            *indexOut = -1;
+
         return VECTOR_NULL_ERROR;
     }
     else if (indexOut == NULL)
@@ -1103,7 +1105,9 @@ vector_result_t vector_find_last(
 {
     if (vector == NULL)
     {
-        *indexOut = -1;
+        if (indexOut != NULL)
+            *indexOut = -1;
+
         return VECTOR_NULL_ERROR;
     }
     else if (indexOut == NULL)
