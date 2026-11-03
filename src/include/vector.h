@@ -435,6 +435,8 @@ CONFETTI_EXPORT vector_result_t vector_prepend(vector_t *const vector, const voi
  * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
+ * @return Any non-success result returned by the configured
+ *         capacity-growing callback.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
