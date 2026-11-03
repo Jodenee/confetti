@@ -824,9 +824,12 @@ vector_result_t vector_set(vector_t *vector, const int64_t index, const void *va
     }
     else
     {
-        vector_result_t result = vector_element_set(vector->items[index], value, size);
+        vector_element_t *element = vector->items[index];
+        vector_result_t result = vector_element_set(element, value, size);
 
-        if (result != VECTOR_SUCCESS)
+        if (result == VECTOR_SUCCESS)
+            vector->items[index] = element;
+        else
             return result;
     }
 
