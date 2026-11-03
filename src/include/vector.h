@@ -277,6 +277,15 @@ typedef enum vector_result
      * cannot be provided.
      */
     VECTOR_SIZE_LIMIT_REACHED = -6,
+
+    /**
+     * An input/output operation failed.
+     *
+     * Returned when an operation involving an input/output stream fails,
+     * such as when vector_print() encounters an error while writing to
+     * the specified stream.
+     */
+    VECTOR_IO_ERROR = -7,
 } vector_result_t;
 
 #pragma endregion
@@ -341,16 +350,17 @@ CONFETTI_EXPORT vector_result_t vector_free(vector_t **vectorOut);
  * The elements are displayed in their current order, followed by the
  * address of the vector itself.
  *
- * If stream is `NULL`, stdout is used as the destination stream.
+ * If `stream` is `NULL`, `stdout` is used as the destination stream.
  *
  * The default printing callback displays each element's data pointer
  * rather than interpreting or printing its stored bytes.
  *
  * @param vector Vector whose contents are to be printed.
- * @param stream Destination output stream, or `NULL` to use stdout.
+ * @param stream Destination output stream, or `NULL` to use `stdout`.
  *
  * @return `VECTOR_SUCCESS` if the printing operation completes successfully.
- * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
+ * @return `VECTOR_NULL_ERROR` if `vector` is `NULL`.
+ * @return `VECTOR_IO_ERROR` if an error occurs while writing to the output stream.
  *
  * @note Errors returned by the configured element-printing callback are
  *       propagated to the caller.
@@ -379,7 +389,7 @@ CONFETTI_EXPORT vector_result_t vector_print(vector_t *const vector, FILE *strea
  *         the supported allocation limit.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
-CONFETTI_EXPORT vector_result_t vector_resize(vector_t *const vector, const int64_t capacity);
+CONFETTI_EXPORT vector_result_t vector_resize_capacity(vector_t *const vector, const int64_t capacity);
 
 /**
  * @brief Inserts an element at the beginning of a vector.
@@ -403,7 +413,7 @@ CONFETTI_EXPORT vector_result_t vector_resize(vector_t *const vector, const int6
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
  */
-CONFETTI_EXPORT vector_result_t vector_prepend(vector_t *const vector, void *const value, const size_t size);
+CONFETTI_EXPORT vector_result_t vector_prepend(vector_t *const vector, const void *value, const size_t size);
 
 /**
  * @brief Appends an element to the end of a vector.
@@ -427,7 +437,7 @@ CONFETTI_EXPORT vector_result_t vector_prepend(vector_t *const vector, void *con
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
  */
-CONFETTI_EXPORT vector_result_t vector_append(vector_t *const vector, void *const value, const size_t size);
+CONFETTI_EXPORT vector_result_t vector_append(vector_t *const vector, const void *value, const size_t size);
 
 /**
  * @brief Inserts an element at a specified index in a vector.
@@ -458,7 +468,7 @@ CONFETTI_EXPORT vector_result_t vector_append(vector_t *const vector, void *cons
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
  */
-CONFETTI_EXPORT vector_result_t vector_insert(vector_t *const vector, const int64_t index, void *const value, const size_t size);
+CONFETTI_EXPORT vector_result_t vector_insert(vector_t *const vector, const int64_t index, const void *value, const size_t size);
 
 /**
  * @brief Retrieves an independent copy of an element.
@@ -508,7 +518,7 @@ CONFETTI_EXPORT vector_result_t vector_get(vector_t *vector, const int64_t index
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
  */
-CONFETTI_EXPORT vector_result_t vector_set(vector_t *const vector, const int64_t index, void *const value, const size_t size);
+CONFETTI_EXPORT vector_result_t vector_set(vector_t *const vector, const int64_t index, const void *value, const size_t size);
 
 /**
  * @brief Removes an element from a vector.
@@ -665,7 +675,7 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t *const vector1, vector_t *c
  */
 CONFETTI_EXPORT vector_result_t vector_includes(
     vector_t *const vector,
-    void *const value,
+    const void *value,
     const size_t size);
 
 /**
@@ -698,7 +708,7 @@ CONFETTI_EXPORT vector_result_t vector_includes(
 CONFETTI_EXPORT vector_result_t vector_find_first(
     vector_t *const vector,
     const int64_t startIndex,
-    void *const value,
+    const void *value,
     const size_t size,
     int64_t *const indexOut);
 
@@ -733,7 +743,7 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
 CONFETTI_EXPORT vector_result_t vector_find_last(
     vector_t *const vector,
     const int64_t startIndex,
-    void *const value,
+    const void *value,
     const size_t size,
     int64_t *const indexOut);
 

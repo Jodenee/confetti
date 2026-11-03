@@ -549,7 +549,7 @@ static vector_result_t default_print(
         streamPrintResult = fprintf(stream, "%p", value);
 
     if (streamPrintResult < 0)
-        return VECTOR_INVALID_PARAMS_ERROR;
+        return VECTOR_IO_ERROR;
 
     return VECTOR_SUCCESS;
 }
@@ -633,15 +633,24 @@ vector_result_t vector_print(vector_t *vector, FILE *stream)
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
 
+    int streamPrintResult;
     FILE *outputStream = stream == NULL ? stdout : stream;
 
     if (vector->size == 0)
     {
-        fprintf(outputStream, "[ ] -> %p\n", vector);
+        streamPrintResult = fprintf(outputStream, "[ ] -> %p\n", vector);
+
+        if (streamPrintResult < 0)
+            return VECTOR_IO_ERROR;
+
+
         return VECTOR_SUCCESS;
     }
 
-    fprintf(outputStream, "[");
+    streamPrintResult = fprintf(outputStream, "[");
+
+    if (streamPrintResult < 0)
+        return VECTOR_IO_ERROR;
 
     for (int64_t i = 0LL; i < vector->size; i++)
     {
@@ -652,16 +661,23 @@ vector_result_t vector_print(vector_t *vector, FILE *stream)
         if (printResult != VECTOR_SUCCESS)
             return printResult;
 
-        if (i < vector->size - 1)
-            fprintf(outputStream, ", ");
+        if (i < vector->size - 1) {
+            streamPrintResult = fprintf(outputStream, ", ");
+
+            if (streamPrintResult < 0)
+                return VECTOR_IO_ERROR;
+        }
     }
 
-    fprintf(outputStream, "] -> %p\n", vector);
+    streamPrintResult = fprintf(outputStream, "] -> %p\n", vector);
+
+    if (streamPrintResult < 0)
+        return VECTOR_IO_ERROR;
 
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_resize(vector_t *vector, const int64_t capacity)
+vector_result_t vector_resize_capacity(vector_t *vector, const int64_t capacity)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -708,7 +724,7 @@ vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_append(vector_t *vector, void *const value, const size_t size)
+vector_result_t vector_append(vector_t *vector, const void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -733,7 +749,7 @@ vector_result_t vector_append(vector_t *vector, void *const value, const size_t 
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_insert(vector_t *vector, const int64_t index, void *const value, const size_t size)
+vector_result_t vector_insert(vector_t *vector, const int64_t index, const void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -787,7 +803,7 @@ vector_result_t vector_get(vector_t *vector, const int64_t index, vector_element
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_set(vector_t *vector, const int64_t index, void *const value, const size_t size)
+vector_result_t vector_set(vector_t *vector, const int64_t index, const void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -1022,9 +1038,6 @@ vector_result_t vector_includes(vector_t *const vector, void *value, const size_
     {
         vector_element_t *element = vector->items[i];
 
-        if (element->size != size)
-            continue;
-
         if (vector->compare(element->value, value, element->size, size) == 0)
             return VECTOR_SUCCESS;
     }
@@ -1035,7 +1048,7 @@ vector_result_t vector_includes(vector_t *const vector, void *value, const size_
 vector_result_t vector_find_first(
     vector_t *const vector,
     const int64_t startIndex,
-    void *const value,
+    const void *value,
     const size_t size,
     int64_t *const indexOut)
 {
@@ -1062,9 +1075,6 @@ vector_result_t vector_find_first(
     for (int64_t i = startIndex; i < vector->size; i++)
     {
         vector_element_t *element = vector->items[i];
-
-        if (element->size != size)
-            continue;
 
         if (vector->compare(element->value, value, element->size, size) == 0)
         {
