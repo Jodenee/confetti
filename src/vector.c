@@ -44,18 +44,25 @@ static vector_result_t vector_element_create(const void *const value, const size
 /**
  * @brief Sets the value of an existing vector element.
  *
- * This function updates the value of a specified vector element
- * with a new value. If the size of the new value differs from the current
- * size of the element, it reallocates memory for the element's value.
+ * This function updates the value and size of the specified vector element.
+ * If the supplied value is `NULL`, the element's existing value allocation
+ * is freed and its value is set to `NULL`.
  *
- * @param element A pointer to the vector element whose value is to be set.
- * @param value A pointer to the new value to be assigned to the element.
- * @param size The size of value.
+ * If the supplied value is not `NULL`, this function allocates a new memory
+ * block and copies the supplied data into it before freeing the element's
+ * existing value allocation. This ensures that the source data remains valid
+ * during the copy, even when it overlaps with the element's existing data.
  *
- * @return
- * - `VECTOR_SUCCESS` if the value was set successfully.
+ * If memory allocation fails, the element remains unchanged.
  *
- * - `VECTOR_ALLOCATION_FAILURE` if memory allocation fails during the process.
+ * @param element Pointer to the vector element whose value is to be set.
+ * @param value Pointer to the new value to be assigned to the element.
+ *              May be `NULL`.
+ * @param size Size of the supplied value in bytes. Must be greater than zero.
+ *
+ * @return `VECTOR_SUCCESS` if the value was set successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if element is `NULL` or size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
 static vector_result_t vector_element_set(vector_element_t *const element, const void *const value, const size_t size);
 
