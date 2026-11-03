@@ -222,17 +222,14 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
         }
     }
 
-    void *valueCopy = NULL;
-
-    if (element->value == NULL)
-        valueCopy = (void *)malloc(size);
-    else
-        valueCopy = (void *)realloc(element->value, size);
+    void *valueCopy = (void*) malloc(size);
 
     if (valueCopy == NULL)
         return VECTOR_ALLOCATION_FAILURE;
 
     memcpy(valueCopy, value, size);
+
+    free(element->value);
 
     element->value = valueCopy;
     element->size = size;
