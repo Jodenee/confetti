@@ -409,6 +409,8 @@ CONFETTI_EXPORT vector_result_t vector_resize_capacity(vector_t *const vector, c
  * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
+ * @return Any non-success result returned by the configured
+ *         capacity-growing callback.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -464,6 +466,8 @@ CONFETTI_EXPORT vector_result_t vector_append(vector_t *const vector, const void
  * @return `VECTOR_INVALID_PARAMS_ERROR` if size is zero.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  * @return `VECTOR_SIZE_LIMIT_REACHED` if the vector cannot increase its capacity.
+ * @return Any non-success result returned by the configured
+ *         capacity-growing callback.
  *
  * @note The vector stores its own copy of the supplied data. The caller
  *       retains ownership of the original data.
@@ -739,6 +743,8 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if `startIndex` is outside the
  *         permitted range.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
+ * @return Any non-success result returned by the configured
+ *         capacity-growing callback.
  *
  * @note On failure, `indexOut` is set to -1 when the output pointer is valid.
  */
