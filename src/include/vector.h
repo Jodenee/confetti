@@ -657,9 +657,9 @@ CONFETTI_EXPORT vector_result_t vector_join(vector_t *const vector1, vector_t *c
 /**
  * @brief Checks whether a vector contains a matching element.
  *
- * Searches the vector for an element whose size matches the supplied size
- * and whose contents are considered equal by the vector's comparison
- * callback.
+ * An element is considered a match when the vector's comparison callback
+ * considers its data equal to the supplied value. The callback receives
+ * the sizes of both elements and determines how differing sizes are handled.
  *
  * @param vector Vector to search.
  * @param value Pointer to the data to search for. May be `NULL`.
@@ -684,9 +684,9 @@ CONFETTI_EXPORT vector_result_t vector_includes(
  * Searches forwards through the vector, beginning at `startIndex`, and
  * returns the index of the first matching element encountered.
  *
- * An element is considered a match when its size matches the supplied
- * size and the vector's comparison callback considers its data equal
- * to value.
+ * An element is considered a match when the vector's comparison callback
+ * considers its data equal to the supplied value. The callback receives
+ * the sizes of both elements and determines how differing sizes are handled.
  *
  * @param vector Vector to search.
  * @param startIndex Index at which the forward search begins. Must be
@@ -719,9 +719,9 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  * returns the index of the first matching element encountered during
  * the reverse search.
  *
- * An element is considered a match when its size matches the supplied
- * size and the vector's comparison callback considers its data equal
- * to value.
+ * An element is considered a match when the vector's comparison callback
+ * considers its data equal to the supplied value. The callback receives
+ * the sizes of both elements and determines how differing sizes are handled.
  *
  * @param vector Vector to search.
  * @param startIndex Index at which the reverse search begins. Must be

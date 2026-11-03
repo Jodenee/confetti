@@ -694,7 +694,7 @@ vector_result_t vector_resize_capacity(vector_t *vector, const int64_t capacity)
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_prepend(vector_t *vector, void *value, const size_t size)
+vector_result_t vector_prepend(vector_t *vector, const void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -1027,7 +1027,7 @@ vector_result_t vector_join(vector_t *const vector1, vector_t *const vector2, ve
     return VECTOR_SUCCESS;
 }
 
-vector_result_t vector_includes(vector_t *const vector, void *value, const size_t size)
+vector_result_t vector_includes(vector_t *const vector, const void *value, const size_t size)
 {
     if (vector == NULL)
         return VECTOR_NULL_ERROR;
@@ -1090,7 +1090,7 @@ vector_result_t vector_find_first(
 vector_result_t vector_find_last(
     vector_t *const vector,
     const int64_t startIndex,
-    void *value,
+    const void *value,
     const size_t size,
     int64_t *indexOut)
 {
@@ -1117,9 +1117,6 @@ vector_result_t vector_find_last(
     for (int64_t i = startIndex; i >= 0; i--)
     {
         vector_element_t *element = vector->items[i];
-
-        if (element->size != size)
-            continue;
 
         if (vector->compare(element->value, value, element->size, size) == 0)
         {
