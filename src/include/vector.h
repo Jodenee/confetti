@@ -699,8 +699,9 @@ CONFETTI_EXPORT vector_result_t vector_includes(
  *
  * @return `VECTOR_SUCCESS` if a matching element is found.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL`, `startIndex` is
- *         outside the permitted range, or size is zero.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL` or size is zero.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if `startIndex` is outside the
+ *         permitted range.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
  * @note On failure, `indexOut` is set to -1 when the output pointer is valid.
@@ -734,8 +735,9 @@ CONFETTI_EXPORT vector_result_t vector_find_first(
  *
  * @return `VECTOR_SUCCESS` if a matching element is found.
  * @return `VECTOR_NULL_ERROR` if vector is `NULL`.
- * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL`, `startIndex` is
- *         outside the permitted range, or size is zero.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if `indexOut` is `NULL` or size is zero.
+ * @return `VECTOR_INDEX_OUT_OF_RANGE_ERROR` if `startIndex` is outside the
+ *         permitted range.
  * @return `VECTOR_ELEMENT_NOT_FOUND_ERROR` if no matching element is found.
  *
  * @note On failure, `indexOut` is set to -1 when the output pointer is valid.

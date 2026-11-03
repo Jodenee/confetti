@@ -1064,7 +1064,7 @@ vector_result_t vector_find_first(
     else if (startIndex >= vector->size || startIndex < 0)
     {
         *indexOut = -1;
-        return VECTOR_INVALID_PARAMS_ERROR;
+        return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
     }
     else if (size == 0)
     {
@@ -1106,7 +1106,7 @@ vector_result_t vector_find_last(
     else if (startIndex >= vector->size || startIndex < 0)
     {
         *indexOut = -1;
-        return VECTOR_INVALID_PARAMS_ERROR;
+        return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
     }
     else if (size == 0)
     {
