@@ -1059,14 +1059,14 @@ vector_result_t vector_find_first(
     const size_t size,
     int64_t *const indexOut)
 {
-    if (indexOut == NULL)
-    {
-        return VECTOR_INVALID_PARAMS_ERROR;
-    }
-    else if (vector == NULL)
+    if (vector == NULL)
     {
         *indexOut = -1;
         return VECTOR_NULL_ERROR;
+    }
+    else if (indexOut == NULL)
+    {
+        return VECTOR_INVALID_PARAMS_ERROR;
     }
     else if (startIndex >= vector->size || startIndex < 0)
     {
@@ -1101,14 +1101,14 @@ vector_result_t vector_find_last(
     const size_t size,
     int64_t *indexOut)
 {
-    if (indexOut == NULL)
-    {
-        return VECTOR_INVALID_PARAMS_ERROR;
-    }
-    else if (vector == NULL)
+    if (vector == NULL)
     {
         *indexOut = -1;
         return VECTOR_NULL_ERROR;
+    }
+    else if (indexOut == NULL)
+    {
+        return VECTOR_INVALID_PARAMS_ERROR;
     }
     else if (startIndex >= vector->size || startIndex < 0)
     {
