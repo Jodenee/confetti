@@ -1066,14 +1066,14 @@ vector_result_t vector_find_first(
 
         return VECTOR_NULL_ERROR;
     }
-    else if (indexOut == NULL)
-    {
-        return VECTOR_INVALID_PARAMS_ERROR;
-    }
     else if (startIndex >= vector->size || startIndex < 0)
     {
         *indexOut = -1;
         return VECTOR_INDEX_OUT_OF_RANGE_ERROR;
+    }
+    else if (indexOut == NULL)
+    {
+        return VECTOR_INVALID_PARAMS_ERROR;
     }
     else if (size == 0)
     {
