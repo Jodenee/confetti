@@ -232,10 +232,10 @@ static vector_result_t vector_element_set(vector_element_t *const element, const
     if (valueCopy == NULL)
         return VECTOR_ALLOCATION_FAILURE;
 
+    memcpy(valueCopy, value, size);
+
     element->value = valueCopy;
     element->size = size;
-
-    memcpy(element->value, valueCopy, size);
 
     return VECTOR_SUCCESS;
 }
