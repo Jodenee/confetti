@@ -98,6 +98,7 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
     const int64_t currentCapacity,
     int64_t *const newCapacityOut);
 
+
 /**
  * @brief Compares two vector elements.
  *
@@ -111,15 +112,30 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
  * The elements can have different sizes. The callback is responsible
  * for handling differing sizes appropriately.
  *
- * @param dataOne Pointer to the first element's data.
- * @param dataTwo Pointer to the second element's data.
+ * Either data pointer may be `NULL`. The callback must handle null
+ * pointers safely. The corresponding size argument is still supplied
+ * and must be considered according to the callback's comparison rules.
+ *
+ * The comparison must provide a consistent ordering:
+ * - Reversing the arguments must reverse the sign of the result.
+ * - The ordering must be transitive.
+ * - Elements considered equal must compare consistently with other
+ *   elements.
+ *
+ * These requirements are necessary for the comparison function to
+ * be used reliably by the default sorting implementation.
+ *
+ * @param dataOne Pointer to the first element's data. May be `NULL`.
+ * @param dataTwo Pointer to the second element's data. May be `NULL`.
  * @param dataOneSize Size of the first element in bytes.
  * @param dataTwoSize Size of the second element in bytes.
  *
  * @return A negative, zero, or positive comparison result.
  *
+ * @note The default comparison considers two `NULL` pointers equal,
+ *       regardless of their associated sizes.
  * @note The default comparison compares the common byte prefix using
- *       memcmp and uses the element sizes to break ties.
+ *       `memcmp` and uses the element sizes to break ties.
  */
 typedef int32_t (*vector_compare_function_t)(
     const void *const dataOne,
@@ -127,29 +143,66 @@ typedef int32_t (*vector_compare_function_t)(
     const size_t dataOneSize,
     const size_t dataTwoSize);
 
+
 /**
  * @brief Sorts a vector using a custom sorting implementation.
  *
  * The callback must sort the supplied vector in place.
  *
+ * The callback may reorder the element pointers within the active
+ * range of `vector->items`, but must preserve the vector's internal
+ * invariants.
+ *
+ * In particular, the callback must:
+ * - Preserve `vector->size` and `vector->capacity`.
+ * - Preserve the allocation and address of `vector->items`.
+ * - Preserve the vector's callback configuration.
+ * - Preserve the identity, ownership, size and data of every element.
+ * - Keep every active slot within the range `[0, vector->size)`
+ *   valid.
+ *
+ * The callback must not add or remove elements, free existing elements,
+ * modify their stored data, or replace the internal element pointer array.
+ *
+ * The callback may use `vector_swap()` to exchange elements safely.
+ *
  * @param vector The vector to sort.
  * @param ascending True for ascending order, false for descending order.
  *
- * @return A vector_result_t describing the result of the operation.
+ * @return `VECTOR_SUCCESS` if sorting succeeds.
+ * @return Any non-success result indicating why sorting failed.
+ *
+ * @note The callback's return value is propagated unchanged by
+ *       `vector_sort()`.
  */
 typedef vector_result_t (*vector_sorting_function_t)(vector_t *const vector, const bool ascending);
 
+
 /**
  * @brief Prints one vector element to a stream.
+ *
+ * The callback is responsible for deciding how the element's
+ * contents should be represented and writing that representation
+ * to the supplied stream.
+ *
+ * The callback must return `VECTOR_SUCCESS` when printing succeeds.
+ * If printing fails, it must return an appropriate non-success
+ * `vector_result_t` describing the failure.
+ *
+ * The callback must not close the supplied stream. The stream is
+ * managed by the caller of `vector_print()` and may be used again
+ * after the callback returns.
  *
  * @param value Pointer to the element's data. May be `NULL`.
  * @param size Size of the element in bytes.
  * @param stream Stream to which the element should be printed.
  *
  * @return `VECTOR_SUCCESS` if printing succeeds.
+ * @return An appropriate non-success result if printing fails.
  *
- * @note The callback is responsible for deciding how the element's
- *       contents should be represented.
+ * @note Any non-success result returned by this callback is propagated
+ *       unchanged by `vector_print()`.
+ * @note The callback does not own the supplied stream.
  */
 typedef vector_result_t (*vector_print_function_t)(
     const void *value,
