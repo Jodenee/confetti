@@ -117,7 +117,12 @@ typedef vector_result_t (*vector_growing_strategy_function_t)(
  * and must be considered according to the callback's comparison rules.
  *
  * The comparison must provide a consistent ordering:
- * - Reversing the arguments must reverse the sign of the result.
+ * - If comparing A with B produces a negative result, comparing B
+ *   with A must produce a positive result.
+ * - If comparing A with B produces a positive result, comparing B
+ *   with A must produce a negative result.
+ * - If comparing A with B produces zero, comparing B with A must
+ *   also produce zero.
  * - The ordering must be transitive.
  * - Elements considered equal must compare consistently with other
  *   elements.
