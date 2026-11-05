@@ -128,7 +128,70 @@ IF(BUILD_SHARED_LIBS AND WIN32)
 endif()
 ```
 
-## Examples
+## Quickstart
+
+### `vector.h`
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "vector.h"
+
+int main(void)
+{
+    vector_t *numbers = NULL;
+    vector_element_t *element = NULL;
+
+    vector_result_t result = vector_create(
+        DEFAULT_VECTOR_CAPACITY,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &numbers
+    );
+
+    if (result != VECTOR_SUCCESS)
+    {
+        fprintf(stderr, "Failed to create vector: %d\n", result);
+        return EXIT_FAILURE;
+    }
+
+    int values[] = {10, 20, 30, 40, 50};
+
+    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); ++i)
+    {
+        result = vector_append(numbers, &values[i], sizeof(values[i]));
+
+        if (result != VECTOR_SUCCESS)
+        {
+            fprintf(stderr, "Failed to append element: %d\n", result);
+            vector_free(&numbers);
+            return EXIT_FAILURE;
+        }
+    }
+
+    result = vector_get(numbers, 2, &element);
+
+    if (result != VECTOR_SUCCESS)
+    {
+        fprintf(stderr, "Failed to retrieve element: %d\n", result);
+        vector_free(&numbers);
+        return EXIT_FAILURE;
+    }
+
+    int retrievedValue = *(int *)element->value;
+    printf("Retrieved value: %d\n", retrievedValue);
+
+    vector_element_free(&element);
+    vector_free(&numbers);
+
+    return EXIT_SUCCESS;
+}
+```
+
+## More Examples
 
 confetti examples can be found [here](./examples).
 
