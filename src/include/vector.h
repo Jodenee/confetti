@@ -416,7 +416,8 @@ CONFETTI_EXPORT vector_result_t vector_free(vector_t **vectorOut);
  * rather than interpreting or printing its stored bytes.
  *
  * @param vector Vector whose contents are to be printed.
- * @param stream Destination to an open output stream, or `NULL` to use `stdout`.
+ * @param stream Open output stream to which the vector is printed,
+ *        or `NULL` to use `stdout`.
  *
  * @return `VECTOR_SUCCESS` if the printing operation completes successfully.
  * @return `VECTOR_NULL_ERROR` if `vector` is `NULL`.
