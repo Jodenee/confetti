@@ -23,110 +23,188 @@ If not, see <https://www.gnu.org/licenses/>.
 #pragma region private function definitions
 
 /**
- * @brief Creates a new vector element and initializes it with a value.
+ * @brief Adds two signed 64-bit integers while checking for overflow.
  *
- * This function allocates memory for a new vector element and
- * initializes its value with a copy of the provided data. If the value
- * is NULL, the element's value is set to NULL, and its size is set to
- * the specified value size.
+ * Calculates the sum of the two supplied integers and stores the result
+ * in the destination only if the addition can be represented by an
+ * int64_t value.
  *
- * @param value A pointer to the value to be assigned to the new element.
- * @param size The size of value.
- * @param elementOut A double pointer to where the element will be stored.
+ * The destination pointer must reference a valid int64_t object.
  *
- * @return
- * - `VECTOR_SUCCESS` if the element was created successfully.
+ * @param numberOne The first integer operand.
+ * @param numberTwo The second integer operand.
+ * @param destination Pointer to where the calculated sum will be stored.
  *
- * - `VECTOR_ALLOCATION_FAILURE` if memory allocation fails during the process.
+ * @return `true` if the addition succeeds without overflow.
+ * @return `false` if the addition would cause signed integer overflow.
+ *
+ * @note The destination is left unchanged if overflow is detected.
+ */
+static bool safe_add_int64(int64_t numberOne, int64_t numberTwo, int64_t *destination);
+
+/**
+ * @brief Creates a vector element containing a copy of the supplied data.
+ *
+ * Allocates a new vector element and initialises its size and value.
+ * When value is not `NULL`, the function allocates separate storage
+ * and copies size bytes into it.
+ *
+ * When value is `NULL`, the element is created with a `NULL` value
+ * pointer while retaining the supplied size.
+ *
+ * The output pointer must initially point to `NULL`.
+ *
+ * @param value Pointer to the data to copy, or `NULL`.
+ * @param size Size of the element data in bytes. Must be greater than zero.
+ * @param elementOut Receives the newly created element.
+ *
+ * @return `VECTOR_SUCCESS` if the element is created successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if elementOut is `NULL`,
+ *         *elementOut is not `NULL`, or size is zero.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ *
+ * @note The returned element owns its allocated value storage.
  */
 static vector_result_t vector_element_create(const void *const value, const size_t size, vector_element_t **elementOut);
 
 /**
- * @brief Sets the value of an existing vector element.
+ * @brief Replaces the value and size of an existing vector element.
  *
- * This function updates the value and size of the specified vector element.
- * If the supplied value is `NULL`, the element's existing value allocation
- * is freed and its value is set to `NULL`.
+ * Updates the specified element with the supplied data.
  *
- * If the supplied value is not `NULL`, this function allocates a new memory
- * block and copies the supplied data into it before freeing the element's
- * existing value allocation. This ensures that the source data remains valid
- * during the copy, even when it overlaps with the element's existing data.
+ * When value is `NULL`, the existing value allocation is freed and
+ * the element's value pointer is set to `NULL`.
  *
- * If memory allocation fails, the element remains unchanged.
+ * When value is not `NULL`, new storage is allocated and the supplied
+ * data is copied before the existing allocation is released. This
+ * allows value to refer to data within the element's existing allocation.
  *
- * @param element Pointer to the vector element whose value is to be set.
- * @param value Pointer to the new value to be assigned to the element.
- *              May be `NULL`.
- * @param size Size of the supplied value in bytes. Must be greater than zero.
+ * If allocation fails, the existing element remains unchanged.
  *
- * @return `VECTOR_SUCCESS` if the value was set successfully.
+ * @param element Pointer to the element to update.
+ * @param value Pointer to the replacement data, or `NULL`.
+ * @param size Size of the replacement data in bytes. Must be greater than zero.
+ *
+ * @return `VECTOR_SUCCESS` if the element is updated successfully.
  * @return `VECTOR_INVALID_PARAMS_ERROR` if element is `NULL` or size is zero.
  * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
 static vector_result_t vector_element_set(vector_element_t *const element, const void *const value, const size_t size);
 
 /**
- * @brief Clones an existing vector element.
+ * @brief Creates an independent copy of an existing vector element.
  *
- * This function creates a new vector element that is a copy of
- * the specified existing element. It allocates memory for the new element
- * and copies the value from the original element.
+ * Allocates a new element and copies the source element's size and value.
+ * If the source element's value is `NULL`, the cloned element also has
+ * a `NULL` value pointer.
  *
- * @param element A pointer to the vector element to be cloned.
- * @param elementOut A double pointer to where the cloned element will be stored.
+ * The cloned element owns its own value allocation and does not share
+ * storage with the original element.
  *
- * @return
- * - `VECTOR_SUCCESS` if the element was cloned successfully.
+ * The output pointer must initially point to `NULL`.
  *
- * - `VECTOR_ALLOCATION_FAILURE` if memory allocation fails during the process.
+ * @param element Pointer to the element to clone.
+ * @param elementOut Receives the newly created element.
+ *
+ * @return `VECTOR_SUCCESS` if the element is cloned successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if element or elementOut is `NULL`,
+ *         or if *elementOut is not `NULL`.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
  */
 static vector_result_t vector_element_clone(vector_element_t *const element, vector_element_t **elementOut);
 
 /**
- * @brief Reallocates the capacity of the vector to a new size.
+ * @brief Validates a vector capacity value.
  *
- * This function adjusts the capacity of the specified vector to
- * the new specified capacity. If the new capacity is less than the current
- * capacity, it frees any excess elements and updates the size of the vector
- * if necessary. If the new capacity is greater, it reallocates memory for
- * the items array. If the new capacity is equal to the current capacity,
- * it returns success without making any changes.
+ * Checks that the requested capacity is positive and that allocating
+ * an array of vector element pointers of that capacity will not exceed
+ * the maximum representable size_t allocation size.
  *
- * @param vector A pointer to the vector whose capacity is to be reallocated.
- * @param capacity The new capacity for the vector.
+ * @param capacity The capacity to validate.
  *
- * @return
- * - `VECTOR_SUCCESS` if the capacity was reallocated successfully.
+ * @return `VECTOR_SUCCESS` if the capacity is valid.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if capacity is zero or negative.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the capacity would exceed
+ *         the maximum supported allocation size.
+ */
+static vector_result_t validate_capacity(int64_t capacity);
+
+/**
+ * @brief Increases the allocated capacity of a vector.
  *
- * - `VECTOR_INVALID_PARAMS_ERROR` if the new capacity is less than 1.
+ * Allocates a new element-pointer array with the requested capacity,
+ * copies the pointers to all active elements into the new array,
+ * and initialises the remaining slots to `NULL`.
  *
- * - `VECTOR_ALLOCATION_FAILURE` if memory allocation fails during the process.
+ * Once the new allocation has been successfully prepared, the previous
+ * pointer array is released and the vector's items pointer and capacity
+ * are updated.
+ *
+ * The capacity must not be smaller than the vector's current capacity.
+ *
+ * @param vector Pointer to the vector whose capacity is to be increased.
+ * @param newCapacity The requested capacity.
+ *
+ * @return `VECTOR_SUCCESS` if the capacity is updated successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if vector is `NULL` or the
+ *         requested capacity is smaller than the current capacity.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the requested capacity exceeds
+ *         the supported allocation limit.
+ * @return `VECTOR_ALLOCATION_FAILURE` if memory allocation fails.
+ *
+ * @note Existing element allocations are not copied or moved. Only their
+ *       pointers are transferred to the new array.
  */
 static vector_result_t vector_realloc_capacity(vector_t *const vector, const int64_t capacity);
 
+/**
+ * @brief Increases a vector's capacity using its configured growth strategy.
+ *
+ * Invokes the vector's growing strategy callback with the current capacity
+ * to obtain a proposed new capacity.
+ *
+ * The proposed capacity is validated and must be greater than the current
+ * capacity. If valid, the internal capacity reallocation helper is invoked.
+ *
+ * @param vector Pointer to the vector whose capacity is to be increased.
+ *
+ * @return `VECTOR_SUCCESS` if the vector's capacity is increased successfully.
+ * @return The non-success result returned by the growing strategy callback,
+ *         if the callback fails.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if the proposed capacity is invalid.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if the proposed capacity does not
+ *         exceed the current capacity or exceeds the supported size limit.
+ * @return `VECTOR_ALLOCATION_FAILURE` if capacity reallocation fails.
+ *
+ * @note This helper assumes that vector is valid and has a configured
+ *       growing strategy callback.
+ */
 static vector_result_t vector_grow(vector_t *vector);
 
 /**
- * @brief Compares two data elements for compare.
+ * @brief Compares two data values using the default comparison behaviour.
  *
- * This function checks if two data elements are equal by comparing their values. It handles NULL pointers
- * and uses `memcmp` for the actual comparison of non-NULL data.
+ * Compares the supplied data pointers and their associated sizes.
  *
- * @param dataOne A pointer to the first data element to compare.
- * @param dataTwo A pointer to the second data element to compare.
- * @param size The size of the data elements to be compared.
+ * If both pointers are `NULL`, they are considered equal regardless of
+ * their associated sizes. If only one pointer is `NULL`, the `NULL`
+ * pointer is considered smaller.
  *
- * @return
- * - A negative value if the first data element is NULL and the second is not.
+ * When both pointers are non-`NULL`, their common byte range is compared
+ * using memcmp. If that range is equal, the data sizes are compared to
+ * determine the result.
  *
- * - A positive value if the first data element is not NULL and the second is.
+ * @param dataOne Pointer to the first data value.
+ * @param dataTwo Pointer to the second data value.
+ * @param dataOneSize Size of the first data value in bytes.
+ * @param dataTwoSize Size of the second data value in bytes.
  *
- * - `0` if both data elements are NULL or equal.
+ * @return A negative value if the first value is considered smaller.
+ * @return Zero if the values are considered equal.
+ * @return A positive value if the first value is considered greater.
  *
- * - The result of `memcmp` if both data elements are non-NULL.
- *
- * @note This function assumes that the size parameter is valid and corresponds to the size of the data elements.
+ * @note This comparison treats data as byte sequences. It does not
+ *       interpret the underlying data as particular C types.
  */
 static int32_t default_compare(
     const void *const dataOne,
@@ -135,19 +213,94 @@ static int32_t default_compare(
     const size_t dataTwoSize);
 
 /**
- * @brief Sorts the elements of the vector using a specified sorting order.
+ * @brief Calculates the default increased vector capacity.
  *
- * This function sorts the elements of the specified vector using
- * the `qsort_s` function. The sorting order is determined by the `ascending`
- * parameter, which specifies whether to sort in ascending or descending order.
- * The function uses the provided custom compare function to compare elements
- * during sorting.
+ * Calculates a new capacity by doubling the current capacity.
+ * The proposed capacity is validated before being written to the output.
  *
- * @param vector A pointer to the vector whose elements are to be sorted.
- * @param ascending A boolean value indicating the sort order; true for
- *                  ascending order and false for descending order.
+ * The function rejects calculations that would overflow an int64_t value.
+ *
+ * @param currentCapacity The vector's current capacity.
+ * @param newCapacityOut Receives the calculated capacity.
+ *
+ * @return `VECTOR_SUCCESS` if the new capacity is calculated successfully.
+ * @return `VECTOR_INVALID_PARAMS_ERROR` if newCapacityOut is `NULL`
+ *         or the calculated capacity is invalid.
+ * @return `VECTOR_SIZE_LIMIT_REACHED` if doubling the current capacity
+ *         would exceed the supported size limit.
+ */
+static vector_result_t default_growing_strategy(
+    int64_t const currentCapacity, int64_t *const newCapacityOut
+);
+
+/**
+ * @brief Sorts a range of vector elements using the quicksort algorithm.
+ *
+ * Sorts the elements between the supplied low and high indices,
+ * inclusive, using the vector's configured comparison callback.
+ *
+ * The pivot is selected from the middle of the current range. Elements
+ * are partitioned around the pivot according to the requested sort order.
+ *
+ * The algorithm recursively processes the smaller partition and iterates
+ * over the larger partition to limit recursive stack usage.
+ *
+ * @param vector Pointer to the vector being sorted.
+ * @param low First index of the range to sort.
+ * @param high Last index of the range to sort.
+ * @param ascending `true` for ascending order or `false` for descending order.
+ *
+ * @pre vector must be valid and have a configured comparison callback.
+ * @pre The supplied range must contain valid active element indices.
+ *
+ * @note This function reorders element pointers without changing the
+ *       elements' data, sizes, or ownership.
+ */
+static void vector_quicksort_range(
+    vector_t *vector, int64_t low, int64_t high, bool ascending
+);
+
+/**
+ * @brief Sorts the vector using the default sorting implementation.
+ *
+ * Uses vector_quicksort_range() to sort all active vector elements
+ * according to the configured comparison callback.
+ *
+ * Vectors containing zero or one element require no sorting and
+ * immediately return success.
+ *
+ * @param vector Pointer to the vector to sort.
+ * @param ascending `true` for ascending order or `false` for descending order.
+ *
+ * @return `VECTOR_SUCCESS` when sorting completes.
+ *
+ * @note This function assumes vector is valid and has a configured
+ *       comparison callback.
  */
 static vector_result_t default_sort(vector_t *const vector, const bool ascending);
+
+/**
+ * @brief Prints the default representation of a vector element.
+ *
+ * Prints the literal `NULL` when value is `NULL`. Otherwise, prints
+ * the memory address represented by value.
+ *
+ * The supplied stream is used as the output destination and remains
+ * owned by the caller.
+ *
+ * @param value Pointer to the element data.
+ * @param size Size of the element data in bytes. Unused by this callback.
+ * @param stream Stream to which the representation is written.
+ *
+ * @return `VECTOR_SUCCESS` if the output operation succeeds.
+ * @return `VECTOR_IO_ERROR` if fprintf() reports an output error.
+ *
+ * @note This callback intentionally prints the data address rather than
+ *       interpreting or formatting the contents of the data.
+ */
+static vector_result_t default_print(
+    const void *value, size_t size, FILE *stream
+);
 
 #pragma endregion
 
@@ -494,10 +647,6 @@ static void vector_quicksort_range(
             --right;
         }
 
-        /*
-         * Recurse into the smaller partition and iterate over
-         * the larger one to limit stack usage.
-         */
         if (right >= low && right - low < high - left + 1)
         {
             if (low < right)
