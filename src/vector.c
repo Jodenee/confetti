@@ -143,7 +143,7 @@ static vector_result_t validate_capacity(int64_t capacity);
  * The capacity must not be smaller than the vector's current capacity.
  *
  * @param vector Pointer to the vector whose capacity is to be increased.
- * @param newCapacity The requested capacity.
+ * @param capacity The requested capacity.
  *
  * @return `VECTOR_SUCCESS` if the capacity is updated successfully.
  * @return `VECTOR_INVALID_PARAMS_ERROR` if vector is `NULL` or the
@@ -218,10 +218,13 @@ static int32_t default_compare(
  * Calculates a new capacity by doubling the current capacity.
  * The proposed capacity is validated before being written to the output.
  *
- * The function rejects calculations that would overflow an int64_t value.
+ * The function rejects calculations that would overflow an int64_t value
+ * or produce a capacity exceeding the maximum supported allocation size.
  *
  * @param currentCapacity The vector's current capacity.
  * @param newCapacityOut Receives the calculated capacity.
+ * 
+ * @pre stream must be a valid, open output stream.
  *
  * @return `VECTOR_SUCCESS` if the new capacity is calculated successfully.
  * @return `VECTOR_INVALID_PARAMS_ERROR` if newCapacityOut is `NULL`
