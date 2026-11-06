@@ -201,6 +201,8 @@ typedef vector_result_t (*vector_sorting_function_t)(vector_t *const vector, con
  * @param value Pointer to the element's data. May be `NULL`.
  * @param size Size of the element in bytes.
  * @param stream Stream to which the element should be printed.
+ * 
+ * @pre stream must be a valid, open output stream.
  *
  * @return `VECTOR_SUCCESS` if printing succeeds.
  * @return An appropriate non-success result if printing fails.
@@ -414,7 +416,7 @@ CONFETTI_EXPORT vector_result_t vector_free(vector_t **vectorOut);
  * rather than interpreting or printing its stored bytes.
  *
  * @param vector Vector whose contents are to be printed.
- * @param stream Destination output stream, or `NULL` to use `stdout`.
+ * @param stream Destination to an open output stream, or `NULL` to use `stdout`.
  *
  * @return `VECTOR_SUCCESS` if the printing operation completes successfully.
  * @return `VECTOR_NULL_ERROR` if `vector` is `NULL`.

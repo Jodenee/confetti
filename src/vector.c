@@ -223,8 +223,6 @@ static int32_t default_compare(
  *
  * @param currentCapacity The vector's current capacity.
  * @param newCapacityOut Receives the calculated capacity.
- * 
- * @pre stream must be a valid, open output stream.
  *
  * @return `VECTOR_SUCCESS` if the new capacity is calculated successfully.
  * @return `VECTOR_INVALID_PARAMS_ERROR` if newCapacityOut is `NULL`
@@ -294,6 +292,8 @@ static vector_result_t default_sort(vector_t *const vector, const bool ascending
  * @param value Pointer to the element data.
  * @param size Size of the element data in bytes. Unused by this callback.
  * @param stream Stream to which the representation is written.
+ * 
+ * @pre stream must be a valid, open output stream.
  *
  * @return `VECTOR_SUCCESS` if the output operation succeeds.
  * @return `VECTOR_IO_ERROR` if fprintf() reports an output error.
