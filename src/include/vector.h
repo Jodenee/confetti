@@ -966,4 +966,20 @@ CONFETTI_EXPORT vector_result_t vector_iterator_rewind(vector_iterator_t *const 
  */
 CONFETTI_EXPORT vector_result_t vector_iterator_free(vector_iterator_t **iterator);
 
+/**
+ * @brief Converts a vector result code into its corresponding string representation.
+ *
+ * @details Returns a human-readable string identifying the supplied `vector_result_t`
+ *          value. 
+ *
+ * @param result Result code to convert.
+ *
+ * @return A constant string representing the result code. If the result does not match any recognised value, the function
+ *         returns `"UNKNOWN"`.
+ *
+ * @note The returned string has static storage duration and remains valid
+ *       for the lifetime of the program.
+ */
+const char *vector_result_to_string(vector_result_t result);
+
 #pragma endregion

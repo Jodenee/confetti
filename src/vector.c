@@ -581,15 +581,14 @@ static void vector_quicksort_range(
 
                 if (!ascending)
                 {
-                    comparison = comparison < 0   ? 1
-                                 : comparison > 0 ? -1
-                                                  : 0;
+                    if (comparison < 0)
+                        comparison = 1;
+                    else if (comparison > 0)
+                        comparison = -1;
                 }
 
                 if (comparison >= 0)
-                {
                     break;
-                }
 
                 ++left;
             }
@@ -606,46 +605,34 @@ static void vector_quicksort_range(
 
                 if (!ascending)
                 {
-                    comparison = comparison < 0   ? 1
-                                 : comparison > 0 ? -1
-                                                  : 0;
+                    if (comparison < 0)
+                        comparison = 1;
+                    else if (comparison > 0)
+                        comparison = -1;
                 }
 
                 if (comparison <= 0)
-                {
                     break;
-                }
 
                 /*
                  * Avoid unsigned underflow.
                  */
                 if (right == 0)
-                {
                     break;
-                }
 
                 --right;
             }
 
             if (left > right)
-            {
                 break;
-            }
 
             if (left != right)
-            {
-                vector_swap(
-                    vector,
-                    left,
-                    right);
-            }
+                vector_swap(vector, left, right);
 
             ++left;
 
             if (right == 0)
-            {
                 break;
-            }
 
             --right;
         }
@@ -653,25 +640,17 @@ static void vector_quicksort_range(
         if (right >= low && right - low < high - left + 1)
         {
             if (low < right)
-            {
-                vector_quicksort_range(
-                    vector, low, right, ascending);
-            }
+                vector_quicksort_range(vector, low, right, ascending);
 
             low = left;
         }
         else
         {
             if (left < high)
-            {
-                vector_quicksort_range(
-                    vector, left, high, ascending);
-            }
+                vector_quicksort_range(vector, left, high, ascending);
 
             if (right < low || right == 0)
-            {
                 break;
-            }
 
             high = right;
         }
@@ -1399,6 +1378,21 @@ vector_result_t vector_iterator_free(vector_iterator_t **iterator)
     free((*iterator));
     *iterator = NULL;
     return VECTOR_SUCCESS;
+}
+
+const char* vector_result_to_string(vector_result_t result) {
+    switch (result)
+    {
+        case VECTOR_SUCCESS: return "VECTOR_SUCCESS";
+        case VECTOR_INDEX_OUT_OF_RANGE_ERROR: return "VECTOR_INDEX_OUT_OF_RANGE_ERROR";
+        case VECTOR_ELEMENT_NOT_FOUND_ERROR: return "VECTOR_ELEMENT_NOT_FOUND_ERROR";
+        case VECTOR_NULL_ERROR: return "VECTOR_NULL_ERROR";
+        case VECTOR_INVALID_PARAMS_ERROR: return "VECTOR_INVALID_PARAMS_ERROR";
+        case VECTOR_ALLOCATION_FAILURE: return "VECTOR_ALLOCATION_FAILURE";
+        case VECTOR_SIZE_LIMIT_REACHED: return "VECTOR_SIZE_LIMIT_REACHED";
+        case VECTOR_IO_ERROR: return "VECTOR_IO_ERROR";
+        default: return "UNKNOWN";
+    }
 }
 
 #pragma endregion
