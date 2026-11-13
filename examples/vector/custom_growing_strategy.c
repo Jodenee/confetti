@@ -1,23 +1,24 @@
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include "vector.h"
 
-static vector_result_t custom_growing_strategy(int64_t const currentCapacity, int64_t *const newCapacityOut)
+static vector_result_t custom_growing_strategy(
+    int64_t const currentCapacity,
+    int64_t *const newCapacityOut)
 {
     if (newCapacityOut == NULL)
         return VECTOR_INVALID_PARAMS_ERROR;
-    else if (currentCapacity > INT64_MAX / 2)
+
+    if (currentCapacity > INT64_MAX / 3)
         return VECTOR_SIZE_LIMIT_REACHED;
 
     int64_t newCapacity = currentCapacity * 3;
 
-    vector_result_t validationResult = validate_capacity(newCapacity);
-
-    if (validationResult != VECTOR_SUCCESS)
-        return validationResult;
-
     *newCapacityOut = newCapacity;
+
     return VECTOR_SUCCESS;
 }
 
@@ -36,16 +37,37 @@ int main(void)
 
     if (result != VECTOR_SUCCESS)
     {
-        fprintf(stderr, "Failed to create vector: %d\n", result);
+        fprintf(
+            stderr, 
+            "Failed to create vector: %s\n",
+            vector_result_to_string(result)
+        );
         return EXIT_FAILURE;
     }
 
-    for (int64_t i = 0; i < vector->capacity + 1; i++) {
-        vector_append(vector, &i, sizeof(int64_t));
+    int64_t initialCapacity = vector->capacity;
+
+    for (int64_t i = 0; i <= initialCapacity; i++)
+    {
+        result = vector_append(vector, &i, sizeof(i));
+
+        if (result != VECTOR_SUCCESS)
+        {
+            fprintf(
+                stderr, 
+                "Failed to append element: %s\n",
+                vector_result_to_string(result)
+            );
+
+            vector_free(&vector);
+            return EXIT_FAILURE;
+        }
     }
 
-    fprintf(stdout, "vector capacity after first grow: %d\n", vector->capacity);
+    fprintf(stdout, "Initial capacity: %" PRId64 "\n", initialCapacity);
+    fprintf(stdout, "Capacity after growth: %" PRId64 "\n", vector->capacity);
 
     vector_free(&vector);
+
     return EXIT_SUCCESS;
 }
